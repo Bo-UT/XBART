@@ -583,6 +583,8 @@ void tree::grow_tree_adaptive_std_all(double y_mean, size_t depth, size_t max_de
         model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, gen, this->theta_vector, y_std, Xorder_std);
         this->l = 0;
         this->r = 0;
+        // for leaf node, multply the probability of mu
+        this->prob_split *= 1 / sqrt(2 * 3.14159265359 * (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)))) * exp(0.0 - pow(this -> theta_vector[0] - y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 2) / 2 / (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2) ) ) ); 
         return;
     }
 
