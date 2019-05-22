@@ -652,6 +652,11 @@ void tree::grow_tree_adaptive_std_all(double y_mean, size_t depth, size_t max_de
     return;
 }
 
+void metropolis_adjustment(tree old_tree)
+{
+    return;
+}
+
 void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xorder_right_std, size_t split_var, size_t split_point, xinfo_sizet &Xorder_std, const double *X_std, size_t N_y, size_t p, size_t p_continuous, size_t p_categorical, double &yleft_mean, double &yright_mean, const double &y_mean, std::vector<double> &y_std, Model *model)
 {
 
@@ -1034,6 +1039,7 @@ void BART_likelihood_all(double y_sum, std::vector<double> &y_std, xinfo_sizet &
             no_split = true;
             split_var = 0;
             split_point = 0;
+            likelihood = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) ;
         }
         else if ((N - 1) <= 2 * Nmin)
         {
@@ -1048,6 +1054,7 @@ void BART_likelihood_all(double y_sum, std::vector<double> &y_std, xinfo_sizet &
             no_split = true;
             split_var = 0;
             split_point = 0;
+            likelihood = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) ;
         }
         else if (ind < loglike_start)
         {
@@ -1099,6 +1106,7 @@ void BART_likelihood_all(double y_sum, std::vector<double> &y_std, xinfo_sizet &
             no_split = true;
             split_var = 0;
             split_point = 0;
+            likelihood = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) ;
         }
         else if (ind < loglike_start)
         {

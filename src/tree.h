@@ -131,6 +131,8 @@ class tree
                                     std::vector<size_t> &variable_ind, std::vector<size_t> &X_num_unique, Model *model,
                                     matrix<std::vector<double>*> &data_pointers, const size_t &tree_ind, std::mt19937 &gen,bool sample_weights_flag);
 
+    void metropolis_adjustment(tree old_tree);
+    
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
     tree_p search_bottom_std(const double *X, const size_t &i, const size_t &p, const size_t &N);
