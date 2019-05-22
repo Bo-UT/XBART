@@ -161,6 +161,22 @@ size_t tree::nbots()
     }
 }
 //--------------------
+//get prob_split
+size_t tree::get_prob_split()
+{
+    size_t log_prob;
+    if (l)
+    { //have children
+        log_prob += l->get_prob_split();
+        log_prob += r->get_prob_split();
+        return log_prob;
+    }
+    else
+    {
+        return log(this->prob_split);
+    }
+}
+//--------------------
 //get bottom nodes
 void tree::getbots(npv &bv)
 {
@@ -649,11 +665,6 @@ void tree::grow_tree_adaptive_std_all(double y_mean, size_t depth, size_t max_de
     this->l = lchild;
     this->r = rchild;
 
-    return;
-}
-
-void metropolis_adjustment(tree old_tree)
-{
     return;
 }
 

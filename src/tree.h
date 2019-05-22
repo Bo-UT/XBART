@@ -115,6 +115,7 @@ class tree
     size_t treesize();         //number of nodes in tree
     size_t nnogs();            //number of nog nodes (no grandchildren nodes)
     size_t nbots();            //number of bottom nodes
+    size_t get_prob_split(); // log probability of all splits
 
     void getbots(npv &bv);        //get bottom nodes
     void getnogs(npv &nv);        //get nog nodes (no granchildren)
@@ -131,7 +132,6 @@ class tree
                                     std::vector<size_t> &variable_ind, std::vector<size_t> &X_num_unique, Model *model,
                                     matrix<std::vector<double>*> &data_pointers, const size_t &tree_ind, std::mt19937 &gen,bool sample_weights_flag);
 
-    void metropolis_adjustment(tree old_tree);
     
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
