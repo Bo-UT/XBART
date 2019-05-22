@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from .xbart_cpp_ import XBARTcpp
 import collections
 import numpy as np

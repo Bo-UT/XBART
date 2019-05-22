@@ -4,6 +4,7 @@
 # Do not make changes to this file unless you know what you are doing--modify
 # the SWIG interface file instead.
 
+<<<<<<< HEAD
 from sys import version_info as _swig_python_version_info
 if _swig_python_version_info < (2, 7, 0):
     raise RuntimeError('Python 2.7 or later required')
@@ -13,6 +14,13 @@ if __package__ or '.' in __name__:
     from . import _xbart_cpp_
 else:
     import _xbart_cpp_
+=======
+import _xbart_cpp_
+try:
+    _swig_property = property
+except NameError:
+    pass  # Python < 2.2 doesn't have 'property'.
+>>>>>>> master
 
 try:
     import builtins as __builtin__

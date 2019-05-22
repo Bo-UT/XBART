@@ -13,9 +13,8 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
              bool set_random_seed, size_t random_seed, double no_split_penality,bool sample_weights_flag)
 {
 
-    tree first_tree((size_t)1); // to be safe if first tree doesn't grow
-
-    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &first_tree));
+    std::vector<double> initial_theta(1,0);
+    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &initial_theta));
 
 
     if (parallel)
@@ -82,7 +81,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
 
             // Update Predict
-            fit_new_std_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers);
+            predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
 
             // update residual, now it's residual of m trees
             model->updateResidual(fit_info->predictions_std, tree_ind, num_trees, fit_info->residual_std);
@@ -102,6 +101,7 @@ void predict_std(const double *Xtestpointer, size_t N_test, size_t p, size_t num
                  vector<vector<tree>> &trees, double y_mean)
 {
 
+    NormalModel *model = new NormalModel();
     xinfo predictions_test_std;
     ini_xinfo(predictions_test_std, N_test, num_trees);
 
@@ -121,12 +121,13 @@ void predict_std(const double *Xtestpointer, size_t N_test, size_t p, size_t num
         {
 
             yhat_test_std = yhat_test_std - predictions_test_std[tree_ind];
-            fit_new_std(trees[sweeps][tree_ind], Xtestpointer, N_test, p, predictions_test_std[tree_ind]);
+            predict_from_tree(trees[sweeps][tree_ind], Xtestpointer, N_test, p, predictions_test_std[tree_ind],model);
             yhat_test_std = yhat_test_std + predictions_test_std[tree_ind];
         }
         yhats_test_xinfo[sweeps] = yhat_test_std;
     }
 
+    delete model;
     return;
 }
 
@@ -142,9 +143,8 @@ void fit_std_clt(const double *Xpointer, std::vector<double> &y_std, double y_me
                  size_t p_categorical, size_t p_continuous, vector<vector<tree>> &trees, bool set_random_seed, size_t random_seed, double no_split_penality, bool sample_weights_flag)
 {
 
-    tree first_tree((size_t)1); // to be safe if first tree doesn't grow
-
-    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &first_tree));
+    std::vector<double> initial_theta(1,0);
+    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &initial_theta));
 
     if (parallel)
         thread_pool.start();
@@ -203,7 +203,7 @@ void fit_std_clt(const double *Xpointer, std::vector<double> &y_std, double y_me
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
 
             // fit_new_std(trees[sweeps][tree_ind], Xpointer, N, p, predictions_std[tree_ind]);
-            fit_new_std_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers);
+            predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
 
             // update residual, now it's residual of m trees
             model->updateResidual(fit_info->predictions_std, tree_ind, num_trees, fit_info->residual_std);
@@ -231,9 +231,8 @@ void fit_std_probit(const double *Xpointer, std::vector<double> &y_std, double y
                     size_t p_categorical, size_t p_continuous, vector<vector<tree>> &trees, bool set_random_seed, size_t random_seed, double no_split_penality, bool sample_weights_flag)
 {
 
-    tree first_tree((size_t)1); // to be safe if first tree doesn't grow
-
-    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &first_tree));
+    std::vector<double> initial_theta(1,0);
+    std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &initial_theta));
 
 
     if (parallel)
@@ -338,7 +337,7 @@ void fit_std_probit(const double *Xpointer, std::vector<double> &y_std, double y
             //	COUT << "outer loop weights" << fit_info->mtry_weight_current_tree << endl;
 
             // Update Predict
-            fit_new_std_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers);
+            predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
 
             // update residual, now it's residual of m trees
             model->updateResidual(fit_info->predictions_std, tree_ind, num_trees, fit_info->residual_std);

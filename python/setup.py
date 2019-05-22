@@ -1,5 +1,6 @@
 from setuptools import setup, Extension,find_packages
 import numpy
+import os
 
 from sys import platform
 if platform == "win32":
@@ -8,6 +9,7 @@ else:
   compile_args = ["-std=gnu++11", "-fpic",  "-g"]
 if platform == "darwin":
   compile_args.append("-mmacosx-version-min=10.9") # To ensure gnu+11 and all std libs
+  os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
 
 XBART_cpp_module = Extension('_xbart_cpp_',
                            sources=['xbart/xbart_wrap.cxx', 'xbart/xbart.cpp',
@@ -28,7 +30,7 @@ def readme():
         return f.read()
 
 setup (name = 'xbart',
-       version = '0.1.4',
+       version = '0.1.6',
        author      = "Jingyu He, Saar Yalov, P. Richard Hahn, Lee Reeves",
        description = """XBART project""",
        long_descripition = readme(),

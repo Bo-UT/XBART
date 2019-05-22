@@ -129,7 +129,7 @@ class tree
                                     std::vector<double> &split_count_current_tree, bool &categorical_variables, size_t &p_categorical,
                                     size_t &p_continuous, std::vector<double> &X_values, std::vector<size_t> &X_counts,
                                     std::vector<size_t> &variable_ind, std::vector<size_t> &X_num_unique, Model *model,
-                                    matrix<tree::tree_p> &data_pointers, const size_t &tree_ind, std::mt19937 &gen,bool sample_weights_flag);
+                                    matrix<std::vector<double>*> &data_pointers, const size_t &tree_ind, std::mt19937 &gen,bool sample_weights_flag);
 
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
@@ -165,8 +165,8 @@ class tree
 std::istream &operator>>(std::istream &, tree &);
 std::ostream &operator<<(std::ostream &, const tree &);
 
-void fit_new_std(tree &tree, const double *X_std, size_t N, size_t p, std::vector<double> &output);
+void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std::vector<double> &output,Model *model);
 
-void fit_new_std_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<tree::tree_p> &data_pointers);
+void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
 #endif
