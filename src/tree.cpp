@@ -167,13 +167,29 @@ size_t tree::get_prob_split()
     size_t log_prob;
     if (l)
     { //have children
-        log_prob += l->get_prob_split();
+        log_prob = l->get_prob_split();
         log_prob += r->get_prob_split();
         return log_prob;
     }
     else
     {
         return log(this->prob_split);
+    }
+}
+//--------------------
+//get marginal log-likelihood
+size_t tree::get_marginal_likelihood()
+{
+    size_t loglike;
+    if (l)
+    { //have children
+        loglike = l->get_marginal_likelihood();
+        loglike += r->get_marginal_likelihood();
+        return loglike;
+    }
+    else
+    {
+        return this->likelihood;
     }
 }
 //--------------------
@@ -1469,5 +1485,15 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
+void metropolis_adjustment(tree &old_tree, tree &new_tree)
+{
+    size_t prob_split_old;
+    size_t prob_split_new;
+    size_t likelihood_old;
+    size_t likelihood_new;
+
+    old_tree = new_tree;
+    return;
+}
 #ifndef NoRcpp
 #endif

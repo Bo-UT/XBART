@@ -116,6 +116,7 @@ class tree
     size_t nnogs();            //number of nog nodes (no grandchildren nodes)
     size_t nbots();            //number of bottom nodes
     size_t get_prob_split(); // log probability of all splits
+    size_t get_marginal_likelihood(); // sum of marginal likelihood of all leaf nodes
 
     void getbots(npv &bv);        //get bottom nodes
     void getnogs(npv &nv);        //get nog nodes (no granchildren)
@@ -170,5 +171,7 @@ std::ostream &operator<<(std::ostream &, const tree &);
 void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std::vector<double> &output,Model *model);
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
+
+void metropolis_adjustment(tree &old_tree, tree &new_tree);
 
 #endif
