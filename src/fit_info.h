@@ -61,7 +61,7 @@ struct FitInfo
         {
             this->categorical_variables = true;
         }
-        this->variable_ind = std::vector<size_t>(p_categorical + 1);
+        this->variable_ind = std::vector<size_t>(p_categorical + 1); // cummulated number of unique values in categorical variables
         this->X_num_unique = std::vector<size_t>(p_categorical);
         unique_value_count2(Xpointer, Xorder_std, this->X_values, this->X_counts,
                             this->variable_ind, this->total_points, this->X_num_unique, p_categorical, p_continuous);
