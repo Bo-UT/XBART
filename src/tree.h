@@ -131,7 +131,7 @@ class tree
                                     std::vector<size_t> &X_num_unique, Model *model,
                                     const size_t &tree_ind,bool sample_weights_flag);
 
-    void recalculate_prob(double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints,
+    void recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints,
                           double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel,
                           std::vector<double> &y_std, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, bool &use_all,
                           xinfo &split_count_all_tree, std::vector<double> &mtry_weight_current_tree,

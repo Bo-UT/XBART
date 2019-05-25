@@ -710,7 +710,7 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
     return;
 }
 
-void tree::recalculate_prob(double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints,
+void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints,
                     double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel,
                     std::vector<double> &y_std, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, bool &use_all,
                     xinfo &split_count_all_tree, std::vector<double> &mtry_weight_current_tree,
@@ -744,19 +744,17 @@ void tree::recalculate_prob(double y_mean, size_t depth, size_t max_depth, size_
     if (l){no_split = true;}
     std::vector<size_t> subset_vars = this->subset_vars;
     bool draw_var = false;
-    size_t split_var = this->v;
-    size_t split_point = this->c;
-    
 
-    BART_likelihood_all(y_mean * N_Xorder, y_std, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_values, X_counts, variable_ind, X_num_unique, model, gen, mtry, this->prob_split, this->likelihood, draw_var);
+    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, draw_var);
+
 
     if (no_split == true)
     {
          for (size_t i = 0; i < N_Xorder; i++)
         {
-            data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            fit_info->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
         }
-        model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, gen, this->theta_vector, y_std, Xorder_std);
+        model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, fit_info->gen, this->theta_vector, fit_info->residual_std, Xorder_std);
         this->l = 0;
         this->r = 0;
         // for leaf node, multply the probability of mu
@@ -780,7 +778,7 @@ void tree::recalculate_prob(double y_mean, size_t depth, size_t max_depth, size_
     }
 
 
-    split_count_current_tree[split_var] = split_count_current_tree[split_var] + 1;
+    fit_info->split_count_current_tree[split_var] = fit_info->split_count_current_tree[split_var] + 1;
 
     //COUT << split_count_current_tree << endl;
 
@@ -800,34 +798,34 @@ void tree::recalculate_prob(double y_mean, size_t depth, size_t max_depth, size_
 
     if (p_categorical > 0)
     {
-        split_xorder_std_categorical(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, y_std, X_counts_left, X_counts_right, X_num_unique_left, X_num_unique_right, X_counts, X_values, variable_ind, model);
+        split_xorder_std_categorical(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, X_counts_left, X_counts_right, X_num_unique_left, X_num_unique_right, X_counts, model, fit_info);
     }
 
     if (p_continuous > 0)
     {
-        split_xorder_std_continuous(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, y_std, model);
+        split_xorder_std_continuous(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, model, fit_info);
     }
 
     depth++;
 
     tree::tree_p lchild = new tree(model->getNumClasses(),this);
-    lchild->grow_tree_adaptive_std_all(yleft_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
-                                       draw_mu, parallel, y_std, Xorder_left_std, X_std, mtry, use_all, split_count_all_tree,
-                                       mtry_weight_current_tree, split_count_current_tree, categorical_variables, p_categorical, p_continuous,
-                                       X_values, X_counts_left, variable_ind, X_num_unique_left, model, data_pointers, tree_ind, gen,sample_weights_flag);
+    lchild->grow_from_root(fit_info, yleft_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_left_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_left, X_num_unique_left, model, tree_ind, sample_weights_flag);
 
     tree::tree_p rchild = new tree(model->getNumClasses(),this);
-    rchild->grow_tree_adaptive_std_all(yright_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
-                                       draw_mu, parallel, y_std, Xorder_right_std, X_std, mtry, use_all, split_count_all_tree,
-                                       mtry_weight_current_tree, split_count_current_tree, categorical_variables, p_categorical, p_continuous,
-                                       X_values, X_counts_right, variable_ind, X_num_unique_right, model, data_pointers, tree_ind, gen,sample_weights_flag);
+    rchild->grow_from_root(fit_info, yright_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_right_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_right, X_num_unique_right, model, tree_ind, sample_weights_flag);
 
     this->l = lchild;
     this->r = rchild;
 
     return;
 }
-void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xorder_right_std, size_t split_var, size_t split_point, xinfo_sizet &Xorder_std, const double *X_std, size_t N_y, size_t p, size_t p_continuous, size_t p_categorical, double &yleft_mean, double &yright_mean, const double &y_mean, std::vector<double> &y_std, Model *model)
+void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xorder_right_std, size_t split_var, size_t split_point, xinfo_sizet &Xorder_std, const double *X_std, size_t N_y, size_t p, size_t p_continuous, size_t p_categorical, double &yleft_mean, double &yright_mean, const double &y_mean, std::vector<double> &y_std, Model *model, std::unique_ptr<FitInfo>& fit_info)
 
 {
 
@@ -1196,7 +1194,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
             std::fill(loglike.begin(), loglike.begin() + (N_Xorder - 1) * p_continuous - 1, 0.0);
         }
 
-        if not (draw_var)
+        if (!draw_var)
         {
             if (split_var == 0)
             {
@@ -1204,7 +1202,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
                 prob_split = loglike[ind] / prob_split;
                 likelihood = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) ;
             }
-            else if (split_vars < p_continuous)
+            else if (split_var < p_continuous)
             {
                 // split at continuous variable
                 ind = split_var * (N-1) + split_point;
@@ -1214,7 +1212,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
             {
                 // split at categorical variable
                 size_t start;
-                start = variable_ind[split_var - p_continuous];
+                start = fit_info->variable_ind[split_var - p_continuous];
                 size_t count_X = X_counts[start];
                 ind = start + 1;
                 while (count_X < split_point)
@@ -1223,6 +1221,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
                     ind++;
                 }
                 prob_split = loglike[ind] / prob_split;
+            }
 
             return;
         }
