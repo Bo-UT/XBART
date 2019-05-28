@@ -40,7 +40,7 @@ void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xord
 
 void unique_value_count(const double *Xpointer, xinfo_sizet &Xorder_std, std::vector<double> &X_values, std::vector<size_t> &X_counts, std::vector<size_t> &variable_ind, size_t &total_points, std::vector<size_t> &X_num_unique);
 
-void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, double &likelihood, std::unique_ptr<FitInfo>& fit_info, size_t ind);
+void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, double &likelihood, std::unique_ptr<FitInfo>& fit_info, size_t ind, bool draw_ind);
 
 void cumulative_sum_std(std::vector<double> &y_cumsum, std::vector<double> &y_cumsum_inv, double &y_sum, double *y, xinfo_sizet &Xorder, size_t &i, size_t &N);
 
@@ -134,14 +134,14 @@ class tree
                                     const size_t &tree_ind,bool sample_weights_flag);
 
     void recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints,
-                          double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel,
-                          std::vector<double> &y_std, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, bool &use_all,
-                          xinfo &split_count_all_tree, std::vector<double> &mtry_weight_current_tree,
-                          std::vector<double> &split_count_current_tree, bool &categorical_variables, size_t &p_categorical,
-                          size_t &p_continuous, std::vector<double> &X_values, std::vector<size_t> &X_counts,
-                          std::vector<size_t> &variable_ind, std::vector<size_t> &X_num_unique, Model *model,
-                          matrix<std::vector<double>*> &data_pointers, const size_t &tree_ind, std::mt19937 &gen,bool sample_weights_flag);
-
+                                    double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel,
+                                    xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, 
+                                    std::vector<double> &mtry_weight_current_tree,
+                                    size_t &p_categorical,
+                                    size_t &p_continuous, std::vector<size_t> &X_counts,
+                                    std::vector<size_t> &X_num_unique, Model *model,
+                                    const size_t &tree_ind,bool sample_weights_flag);
+                                    
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
     tree_p search_bottom_std(const double *X, const size_t &i, const size_t &p, const size_t &N);
