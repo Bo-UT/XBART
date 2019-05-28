@@ -628,9 +628,8 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
 
     this->subset_vars = subset_vars;
 
-    bool draw_var = true; // draw variable to split
 
-    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, draw_var);
+    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, this->ind);
 
     if (no_split == true)
     {
@@ -743,9 +742,8 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     bool no_split = false;
     if (l){no_split = true;}
     std::vector<size_t> subset_vars = this->subset_vars;
-    bool draw_var = false;
 
-    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, draw_var);
+    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, this->ind);
 
 
     if (no_split == true)
@@ -825,8 +823,7 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
 
     return;
 }
-void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xorder_right_std, size_t split_var, size_t split_point, xinfo_sizet &Xorder_std, const double *X_std, size_t N_y, size_t p, size_t p_continuous, size_t p_categorical, double &yleft_mean, double &yright_mean, const double &y_mean, std::vector<double> &y_std, Model *model, std::unique_ptr<FitInfo>& fit_info)
-
+void split_xorder_std_continuous(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xorder_right_std, size_t split_var, size_t split_point, xinfo_sizet &Xorder_std, const double *X_std, size_t N_y, size_t p, size_t p_continuous, size_t p_categorical, double &yleft_mean, double &yright_mean, const double &y_mean, Model *model, std::unique_ptr<FitInfo>& fit_info)
 {
 
     // when find the split point, split Xorder matrix to two sub matrices for both subnodes
@@ -1105,7 +1102,7 @@ void split_xorder_std_categorical(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xor
     return;
 }
 
-void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, double &likelihood, std::unique_ptr<FitInfo>& fit_info, bool draw_var)
+void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, double &likelihood, std::unique_ptr<FitInfo>& fit_info, size_t ind)
 
 {
     // compute BART posterior (loglikelihood + logprior penalty)
@@ -1118,7 +1115,6 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
 
     size_t N = Xorder_std[0].size();
     size_t p = Xorder_std.size();
-    size_t ind;
     size_t N_Xorder = N;
     size_t total_categorical_split_candidates = 0;
 
@@ -1164,8 +1160,6 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
         loglike[ii] = exp(loglike[ii] - loglike_max);
     }
 
-    vec_sum(loglike, prob_split);
-
     // sampling cutpoints
     if (N <= Ncutpoints + 1 + 2 * Nmin)
     {
@@ -1194,38 +1188,6 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
             std::fill(loglike.begin(), loglike.begin() + (N_Xorder - 1) * p_continuous - 1, 0.0);
         }
 
-        if (!draw_var)
-        {
-            if (split_var == 0)
-            {
-                ind = loglike.size()-1;
-                prob_split = loglike[ind] / prob_split;
-                likelihood = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) ;
-            }
-            else if (split_var < p_continuous)
-            {
-                // split at continuous variable
-                ind = split_var * (N-1) + split_point;
-                prob_split = loglike[ind] / prob_split;
-            }
-            else 
-            {
-                // split at categorical variable
-                size_t start;
-                start = fit_info->variable_ind[split_var - p_continuous];
-                size_t count_X = X_counts[start];
-                ind = start + 1;
-                while (count_X < split_point)
-                {
-                    count_X += X_counts[ind];
-                    ind++;
-                }
-                prob_split = loglike[ind] / prob_split;
-            }
-
-            return;
-        }
-
         std::discrete_distribution<> d(loglike.begin(), loglike.end());
         // sample one index of split point
 
@@ -1233,6 +1195,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
 
 
         // save the posterior of the chosen split point
+        vec_sum(loglike, prob_split);
         prob_split = loglike[ind] / prob_split;
 
         if (ind == loglike.size() - 1)
@@ -1298,6 +1261,7 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
 
 
         // save the posterior of the chosen split point
+        vec_sum(loglike, prob_split);
         prob_split = loglike[ind] / prob_split;
 
         
