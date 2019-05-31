@@ -162,9 +162,9 @@ size_t tree::nbots()
 }
 //--------------------
 //get prob_split
-size_t tree::get_prob_split()
+double tree::get_prob_split()
 {
-    size_t log_prob;
+    double log_prob = log(this->prob_split);
     if (l)
     { //have children
         log_prob = l->get_prob_split();
@@ -178,9 +178,9 @@ size_t tree::get_prob_split()
 }
 //--------------------
 //get marginal log-likelihood
-size_t tree::get_marginal_likelihood()
+double tree::get_marginal_likelihood()
 {
-    size_t loglike;
+    double loglike;
     if (l)
     { //have children
         loglike = l->get_marginal_likelihood();
@@ -372,7 +372,7 @@ void tree::tonull()
     prob_split = 0.0;
     likelihood = 0.0;
     ind = 0;
-    subset_vars = {};
+    subset_vars.clear();
 }
 //--------------------
 //copy tree tree o to tree n
@@ -392,8 +392,11 @@ void tree::cp(tree_p n, tree_cp o)
     n->prob_split = o->prob_split;
     n->likelihood = o->likelihood;
     n->ind = o->ind;
-    n->subset_vars = o->subset_vars;
-
+    // n->subset_vars = o->subset_vars;
+    for (auto i:o->subset_vars)
+    {
+        n->subset_vars.push_back(i);
+    }
     if (o->l)
     { //if o has children
         n->l = new tree;
@@ -730,20 +733,25 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     size_t N_y = fit_info->residual_std.size();
     size_t ind = this->ind;
     size_t split_var = this->v;
-    size_t split_point;
-    for (int i = 0; i <= Xorder_std[split_var].size(); i++)
-    {
-        if (this->c == *(X_std + N_y * split_var + Xorder_std[split_var][i]))
-        {
-            split_point = i;
-        }
-    }
+    size_t split_point = 0;
+
     bool draw_ind = false;
 
     this->sig = sigma;
     bool no_split = false;
     if (this->l == 0) {no_split = true;}
     std::vector<size_t> subset_vars = this->subset_vars;
+    if (!no_split) // if split, calculate split_point
+    {
+        while (this->c > *(X_std + N_y * split_var + Xorder_std[split_var][split_point]))
+        {
+            split_point++;
+        }
+        while ((split_point < N_Xorder - 1) && (*(X_std + N_y * split_var + Xorder_std[split_var][split_point + 1]) == this->c))
+        {
+            split_point = split_point + 1;
+        }
+    }
 
     BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, this->likelihood, fit_info, ind, draw_ind);
 
@@ -757,41 +765,41 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     xinfo_sizet Xorder_left_std;
     xinfo_sizet Xorder_right_std;
 
-    // ini_xinfo_sizet(Xorder_left_std, split_point + 1, p);
-    // ini_xinfo_sizet(Xorder_right_std, N_Xorder - split_point - 1, p);
+    ini_xinfo_sizet(Xorder_left_std, split_point + 1, p);
+    ini_xinfo_sizet(Xorder_right_std, N_Xorder - split_point - 1, p);
 
-    // double yleft_mean_std = 0.0;
-    // double yright_mean_std = 0.0;
+    double yleft_mean_std = 0.0;
+    double yright_mean_std = 0.0;
 
-    // std::vector<size_t> X_num_unique_left(X_num_unique.size());
-    // std::vector<size_t> X_num_unique_right(X_num_unique.size());
+    std::vector<size_t> X_num_unique_left(X_num_unique.size());
+    std::vector<size_t> X_num_unique_right(X_num_unique.size());
 
-    // std::vector<size_t> X_counts_left(X_counts.size());
-    // std::vector<size_t> X_counts_right(X_counts.size());
+    std::vector<size_t> X_counts_left(X_counts.size());
+    std::vector<size_t> X_counts_right(X_counts.size());
 
-    // if (p_categorical > 0)
-    // {
-    //     split_xorder_std_categorical(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, X_counts_left, X_counts_right, X_num_unique_left, X_num_unique_right, X_counts, model, fit_info);
-    // }
+    if (p_categorical > 0)
+    {
+        split_xorder_std_categorical(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, X_counts_left, X_counts_right, X_num_unique_left, X_num_unique_right, X_counts, model, fit_info);
+    }
 
-    // if (p_continuous > 0)
-    // {
-    //     split_xorder_std_continuous(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, model, fit_info);
-    // }
+    if (p_continuous > 0)
+    {
+        split_xorder_std_continuous(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, model, fit_info);
+    }
 
-    // depth++;
+    depth++;
 
-    // // tree::tree_p lchild = new tree(model->getNumClasses(),this);
-    // this->l->recalculate_prob(fit_info, yleft_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
-    //                                    draw_mu, parallel, Xorder_left_std, X_std, mtry,
-    //                                    mtry_weight_current_tree, p_categorical, p_continuous,
-    //                                    X_counts_left, X_num_unique_left, model, tree_ind, sample_weights_flag);
+    // tree::tree_p lchild = new tree(model->getNumClasses(),this);
+    this->l->recalculate_prob(fit_info, yleft_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_left_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_left, X_num_unique_left, model, tree_ind, sample_weights_flag);
 
-    // // tree::tree_p rchild = new tree(model->getNumClasses(),this);
-    // this->r->recalculate_prob(fit_info, yright_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
-    //                                    draw_mu, parallel, Xorder_right_std, X_std, mtry,
-    //                                    mtry_weight_current_tree, p_categorical, p_continuous,
-    //                                    X_counts_right, X_num_unique_right, model, tree_ind, sample_weights_flag);
+    // tree::tree_p rchild = new tree(model->getNumClasses(),this);
+    this->r->recalculate_prob(fit_info, yright_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_right_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_right, X_num_unique_right, model, tree_ind, sample_weights_flag);
 
 
     return;
@@ -1619,17 +1627,39 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(tree &old_tree, tree &new_tree)
+void metropolis_adjustment(tree &old_tree, tree &new_tree, size_t N, double sig, vector<double> &resid, std::mt19937 &gen)
 {
-    size_t prob_split_old;
-    size_t prob_split_new;
-    size_t likelihood_old;
-    size_t likelihood_new;
+    double prob_split_old;
+    double prob_split_new;
+    double likelihood_old;
+    double likelihood_new;
+    double likelihood_const = N * log(2 * 3.14159265359) + N * log(sig) + std::inner_product(resid.begin(), resid.end(), resid.begin(), 0.0) / 2 / pow(sig, 2);
+    double accept_prob;
+    bool accept;
 
-    // old_tree.recalculate_prob();
     prob_split_old = old_tree.get_prob_split();
-    likelihood_old = old_tree.get_marginal_likelihood();
+    likelihood_old = old_tree.get_marginal_likelihood() - likelihood_const;
+    prob_split_new = new_tree.get_prob_split();
+    likelihood_new = new_tree.get_marginal_likelihood() - likelihood_const;
 
+    // COUT << "prob_split ratio " << exp(prob_split_new - prob_split_old) << endl;
+    // COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
+    accept_prob = exp(prob_split_new + likelihood_new - prob_split_old - likelihood_old);
+    // COUT << "accept_prob " << accept_prob << endl;
+
+    if (accept_prob > 1)
+    {
+        return;
+    }
+
+    std::bernoulli_distribution d(accept_prob);
+    accept = d(gen);
+    if (!accept)
+    {
+        new_tree = old_tree;
+    }
+
+    
 
     return;
 }

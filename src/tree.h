@@ -84,10 +84,10 @@ class tree
     friend std::istream &operator>>(std::istream &, tree &);
     //  friend void update_sufficient_stat(tree& tree, arma::mat& y, arma::mat& X, tree::npv& bv, tree::npv& bv2, double& tau, double& sigma, double& alpha, double& beta);
     //contructors,destructors--------------------
-    tree() : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars({}) {}
-    tree(const tree &n) : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars({}) { cp(this, &n); }
-    tree(double itheta) : theta_vector(itheta, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars({}) {}
-    tree(size_t num_classes,const tree_p parent) : theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p (parent), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars({}) {}
+    tree() : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars(0, 0) {}
+    tree(const tree &n) : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars(0, 0) { cp(this, &n); }
+    tree(double itheta) : theta_vector(itheta, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars(0, 0) {}
+    tree(size_t num_classes,const tree_p parent) : theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p (parent), l(0), r(0), prob_split(0.0), likelihood(0.0), ind(0), subset_vars(0, 0) {}
 
     void tonull(); //like a "clear", null tree has just one node
     ~tree() { tonull(); }
@@ -115,8 +115,8 @@ class tree
     size_t treesize();         //number of nodes in tree
     size_t nnogs();            //number of nog nodes (no grandchildren nodes)
     size_t nbots();            //number of bottom nodes
-    size_t get_prob_split(); // log probability of all splits
-    size_t get_marginal_likelihood(); // sum of marginal likelihood of all leaf nodes
+    double get_prob_split(); // log probability of all splits
+    double get_marginal_likelihood(); // sum of marginal likelihood of all leaf nodes
 
     void getbots(npv &bv);        //get bottom nodes
     void getnogs(npv &nv);        //get nog nodes (no granchildren)
@@ -182,6 +182,6 @@ void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std:
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
-void metropolis_adjustment(tree &old_tree, tree &new_tree);
+void metropolis_adjustment(tree &old_tree, tree &new_tree, size_t N, double sig, vector<double> &resid, std::mt19937 &gen);
 
 #endif

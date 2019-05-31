@@ -88,9 +88,12 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             trees[sweeps][tree_ind].grow_from_root(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
 
             // metropolis adjustment
-            trees[sweeps][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
-            metropolis_adjustment(trees[sweeps][tree_ind], trees[sweeps][tree_ind]);
-
+            if (sweeps > 0)
+            {
+                trees[sweeps-1][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
+                metropolis_adjustment(trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, fit_info->residual_std, fit_info->gen);
+            }
+            
             // Add split counts
             mtry_weight_current_tree = mtry_weight_current_tree + fit_info->split_count_current_tree;
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
