@@ -92,7 +92,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             {
                 fit_info->data_pointers_cp = fit_info->data_pointers;
                 trees[sweeps-1][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
-                metropolis_adjustment(fit_info, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma);
+                metropolis_adjustment(fit_info, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind);
             }
             // Add split counts
             mtry_weight_current_tree = mtry_weight_current_tree + fit_info->split_count_current_tree;
@@ -100,7 +100,6 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
 
             // Update Predict
             predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
-            COUT << "finish predict" << endl;
             model->updateResidual(fit_info->predictions_std, tree_ind, num_trees, fit_info->residual_std);
 
             fit_info->yhat_std = fit_info->yhat_std + fit_info->predictions_std[tree_ind];

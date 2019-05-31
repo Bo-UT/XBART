@@ -182,6 +182,6 @@ void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std:
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig);
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind);
 
 #endif

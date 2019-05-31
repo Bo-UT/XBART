@@ -1632,7 +1632,7 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig)
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind)
 {
     double prob_split_old;
     double prob_split_new;
@@ -1665,7 +1665,8 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     if (!accept)
     {    
         fit_info->data_pointers = fit_info->data_pointers_cp;
-        new_tree = old_tree;
+        fit_info->split_count_current_tree = fit_info->split_count_all_tree[tree_ind];
+        new_tree = old_tree;   
     }
 
     
