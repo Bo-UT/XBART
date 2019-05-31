@@ -368,6 +368,11 @@ void tree::tonull()
     p = 0;
     l = 0;
     r = 0;
+    sig = 0.0;
+    prob_split = 0.0;
+    likelihood = 0.0;
+    ind = 0;
+    subset_vars = {};
 }
 //--------------------
 //copy tree tree o to tree n
@@ -383,6 +388,11 @@ void tree::cp(tree_p n, tree_cp o)
 
     n->v = o->v;
     n->c = o->c;
+    n->sig = o->sig;
+    n->prob_split = o->prob_split;
+    n->likelihood = o->likelihood;
+    n->ind = o->ind;
+    n->subset_vars = o->subset_vars;
 
     if (o->l)
     { //if o has children
