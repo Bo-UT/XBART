@@ -39,6 +39,7 @@ struct FitInfo
 
     // Vector pointers
     matrix<std::vector<double>*> data_pointers;
+    matrix<std::vector<double>*> data_pointers_cp;
     void init_tree_pointers(std::vector<double>* initial_theta, size_t N, size_t num_trees)
     {
         ini_matrix(data_pointers, N, num_trees);

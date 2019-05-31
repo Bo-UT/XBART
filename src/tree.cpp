@@ -363,6 +363,7 @@ void tree::tonull()
         }
         ts = treesize(); //make invariant true
     }
+    theta_vector = {0.0};
     v = 0;
     c = 0;
     p = 0;
@@ -385,7 +386,7 @@ void tree::cp(tree_p n, tree_cp o)
         COUT << "cp:error node has children\n";
         return;
     }
-
+    n->theta_vector = o->theta_vector;
     n->v = o->v;
     n->c = o->c;
     n->sig = o->sig;
@@ -757,6 +758,10 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
 
     if (no_split == true)
     {
+        for (size_t i = 0; i < N_Xorder; i++)
+        {
+            fit_info->data_pointers_cp[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+        }
         // for leaf node, multply the probability of mu
         this->prob_split *= 1 / sqrt(2 * 3.14159265359 * (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)))) * exp(0.0 - pow(this -> theta_vector[0] - y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 2) / 2 / (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2) ) ) ); 
         return;
@@ -1627,13 +1632,16 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(tree &old_tree, tree &new_tree, size_t N, double sig, vector<double> &resid, std::mt19937 &gen)
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig)
 {
     double prob_split_old;
     double prob_split_new;
     double likelihood_old;
     double likelihood_new;
+
+    vector<double> resid = fit_info->residual_std;
     double likelihood_const = N * log(2 * 3.14159265359) + N * log(sig) + std::inner_product(resid.begin(), resid.end(), resid.begin(), 0.0) / 2 / pow(sig, 2);
+    
     double accept_prob;
     bool accept;
 
@@ -1653,9 +1661,10 @@ void metropolis_adjustment(tree &old_tree, tree &new_tree, size_t N, double sig,
     }
 
     std::bernoulli_distribution d(accept_prob);
-    accept = d(gen);
+    accept = d(fit_info->gen);
     if (!accept)
-    {
+    {    
+        fit_info->data_pointers = fit_info->data_pointers_cp;
         new_tree = old_tree;
     }
 
