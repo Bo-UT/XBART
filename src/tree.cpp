@@ -1047,13 +1047,13 @@ double tree::tree_likelihood(size_t N, double sigma, vector<double> y)
         the likelihood of all leaf parameters of given tree
     */
     npv tree_vec;
-    this->getnodes(tree_vec);
+    this->getbots(tree_vec);
     double output = 0.0;
     for(size_t i = 0; i < tree_vec.size(); i++ )
     {
         output += tree_vec[i]->loglike_leaf;
     }
-    output += - N * log(2 * 3.14159265359) / 2 - N * log(sigma) - std::inner_product(y.begin(), y.end(), y.begin(), 0.0) / pow(sigma, 2) / 2;
+    output = output - N * log(2 * 3.14159265359) / 2 - N * log(sigma) - std::inner_product(y.begin(), y.end(), y.begin(), 0.0) / pow(sigma, 2) / 2;
     return output;
 
 }
@@ -2192,9 +2192,9 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     likelihood_new = new_tree.tree_likelihood(N, sig, resid);
     prior_new = new_tree.prior_prob(tau, alpha, beta);
 
-    // COUT << "proposal ratio " << exp(proposal_new - proposal_old) << endl;
-    // COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
-    // COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
+    COUT << "proposal ratio " << exp(proposal_new - proposal_old) << endl;
+    COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
+    COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
     accept_prob = exp(proposal_new + likelihood_new + prior_new - proposal_old - likelihood_old - prior_old);
 
     // COUT << "accept_prob " << accept_prob << endl;
@@ -2218,7 +2218,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
         COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
         COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
         COUT << "accept_prob " << accept_prob << endl;
-        
+
         fit_info->data_pointers = fit_info->data_pointers_cp;
         fit_info->split_count_current_tree = fit_info->split_count_all_tree[tree_ind];
         new_tree = old_tree;   
