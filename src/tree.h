@@ -42,6 +42,8 @@ void unique_value_count(const double *Xpointer, xinfo_sizet &Xorder_std, std::ve
 
 void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, std::unique_ptr<FitInfo>& fit_info, size_t &drawn_ind);
 
+void BART_likelihood_update(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, std::unique_ptr<FitInfo>& fit_info, size_t &drawn_ind);
+
 void BART_likelihood_update_old_tree(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, std::unique_ptr<FitInfo>& fit_info, size_t &drawn_ind);
 
 void cumulative_sum_std(std::vector<double> &y_cumsum, std::vector<double> &y_cumsum_inv, double &y_sum, double *y, xinfo_sizet &Xorder, size_t &i, size_t &N);
@@ -86,10 +88,10 @@ class tree
     friend std::istream &operator>>(std::istream &, tree &);
     //  friend void update_sufficient_stat(tree& tree, arma::mat& y, arma::mat& X, tree::npv& bv, tree::npv& bv2, double& tau, double& sigma, double& alpha, double& beta);
     //contructors,destructors--------------------
-    tree() : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), likelihood(0.0), subset_vars(0, 0) {}
-    tree(const tree &n) : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), likelihood(0.0), subset_vars(0, 0)  { cp(this, &n); }
-    tree(double itheta) : theta_vector(itheta, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0) , likelihood(0.0), subset_vars(0, 0) {}
-    tree(size_t num_classes,const tree_p parent) : theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p (parent), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), likelihood(0.0), subset_vars(0, 0)  {}
+    tree() : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), subset_vars(0, 0) {}
+    tree(const tree &n) : theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), subset_vars(0, 0)  { cp(this, &n); }
+    tree(double itheta) : theta_vector(itheta, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0) , loglike_leaf(0.0), subset_vars(0, 0) {}
+    tree(size_t num_classes,const tree_p parent) : theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p (parent), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), subset_vars(0, 0)  {}
 
     void tonull(); //like a "clear", null tree has just one node
     ~tree() { tonull(); }
@@ -133,8 +135,6 @@ class tree
     size_t treesize();         //number of nodes in tree
     size_t nnogs();            //number of nog nodes (no grandchildren nodes)
     size_t nbots();            //number of bottom nodes
-    double get_prob_split(); // log probability of all splits
-    double get_marginal_likelihood(); // sum of marginal likelihood of all leaf nodes
 
     void getbots(npv &bv);        //get bottom nodes
     void getnogs(npv &nv);        //get nog nodes (no granchildren)
@@ -166,6 +166,9 @@ class tree
     double transition_prob();
     double log_like_tree(double sigma2, double tau);  
 
+    double prior_prob(double tau, double alpha, double beta);
+    double tree_likelihood(size_t N, double sigma, vector<double> y);
+
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
     tree_p search_bottom_std(const double *X, const size_t &i, const size_t &p, const size_t &N);
@@ -189,10 +192,11 @@ class tree
     double c;
 
     double prob_split; // posterior of the chose split points, by Bayes rule
-    double likelihood; // marginal log-likelihood of leaf nodes
     std::vector<size_t> subset_vars; // subset variables at each split
 
     double prob_leaf; // posterior of the leaf parameter
+
+    double loglike_leaf; // conditional likelihood of leaf
 
     size_t drawn_ind; // index drawn when sampling cutpoints (in the total likelihood + nosplit vector)
 
@@ -217,6 +221,6 @@ void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std:
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind);
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind,  double tau, double alpha, double beta, double &accept_prob, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio);
 
 #endif
