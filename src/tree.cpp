@@ -63,6 +63,19 @@ size_t tree::depth()
         return (1 + p->depth());
 }
 //--------------------
+size_t tree::max_depth()
+{
+    size_t output = 0;
+    npv tree_vec;
+    // get a vector of all nodess
+    this->getbots(tree_vec);
+    for (int i = 0; i < tree_vec.size(); i++){
+        if (tree_vec[i]->depth() > output){
+            output = tree_vec[i]->depth();
+        }
+    }
+    return output;
+}
 //tree size
 size_t tree::treesize()
 {
@@ -344,6 +357,7 @@ void tree::tonull()
     prob_leaf = 0.0;
     loglike_leaf = 0.0;
     subset_vars.clear();
+    split_point = 0;
 }
 //--------------------
 //copy tree tree o to tree n
@@ -360,6 +374,7 @@ void tree::cp(tree_p n, tree_cp o)
     n->v = o->v;
     n->c = o->c;
     n->sig = o->sig;
+    n->split_point = o->split_point;
     n->prob_split = o->prob_split;
     n->subset_vars = o->subset_vars;
     n->prob_leaf = o->prob_leaf;
@@ -650,6 +665,9 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
     {
         split_point = split_point + 1;
     }
+
+    this->split_point = split_point;
+
     
     // If our current split is same as parent, exit
     if ( (this->p) && (this->v == (this->p)->v) && (this->c == (this->p)->c) ) {
@@ -713,7 +731,7 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     size_t N_y = fit_info->residual_std.size();
     size_t ind = this->drawn_ind;
     size_t split_var = this->v;
-    size_t split_point = 0;
+    size_t split_point = this->split_point;
 
     bool draw_ind = false;
 
@@ -721,17 +739,18 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     if (this->l == 0) {no_split = true;}
     // std::vector<size_t> subset_vars = this->subset_vars;
 
-    if (!no_split) // if split, calculate split_point
-    {
-        while (this->c > *(X_std + N_y * split_var + Xorder_std[split_var][split_point]))
-        {
-            split_point++;
-        }
-        while ((split_point < N_Xorder - 1) && (*(X_std + N_y * split_var + Xorder_std[split_var][split_point + 1]) == this->c))
-        {
-            split_point = split_point + 1;
-        }
-    }
+    // size_t split_point = 0;
+    // if (!no_split) // if split, calculate split_point
+    // {
+    //     while (this->c > *(X_std + N_y * split_var + Xorder_std[split_var][split_point]))
+    //     {
+    //         split_point++;
+    //     }
+    //     while ((split_point < N_Xorder - 1) && (*(X_std + N_y * split_var + Xorder_std[split_var][split_point + 1]) == this->c))
+    //     {
+    //         split_point = split_point + 1;
+    //     }
+    // }
 
     BART_likelihood_update(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, this->subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, fit_info, this->drawn_ind);
 
@@ -876,6 +895,14 @@ void tree::update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, 
         // model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, fit_info->gen, this->theta_vector, fit_info->residual_std, Xorder_std, this->prob_leaf);
 
         // cout << "prob_leaf before " << this-> prob_leaf << "   " ;
+        for (size_t i = 0; i < N_Xorder; i++)
+        {
+            fit_info->data_pointers_cp[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+        }
+        // for leaf node, multply the probability of mu
+        // this->prob_split *= 1 / sqrt(2 * 3.14159265359 * (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)))) * exp(0.0 - pow(this -> theta_vector[0] - y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 2) / 2 / (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2) ) ) ); 
+        this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
+ 
 
         this->prob_leaf = normal_density(this->theta_vector[0], y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)), true);
 
@@ -2171,7 +2198,7 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, double &accept_prob, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio)
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, double &accept_prob, double &drawn_accept, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio)
 {
     double proposal_old;
     double proposal_new;
@@ -2182,8 +2209,6 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
 
     vector<double> resid = fit_info->residual_std;
 
-    // double accept_prob;
-    bool accept;
 
     proposal_old = old_tree.transition_prob();
     likelihood_old = old_tree.tree_likelihood(N, sig, resid);
@@ -2205,14 +2230,21 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
 
     if (accept_prob > 1)
     {
+        
+        COUT << "accept" << endl;
+        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
         return;
     }
 
     std::bernoulli_distribution d(accept_prob);
-    accept = d(fit_info->gen);
+    bool accept = d(fit_info->gen);
+    drawn_accept = 1.0;
+
     if (!accept)
     {    
+        drawn_accept = 0.0;
         COUT << "reject" << endl;
+        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
 
         COUT << "proposal ratio " << exp(proposal_new - proposal_old) << endl;
         COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
@@ -2223,6 +2255,12 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
         fit_info->split_count_current_tree = fit_info->split_count_all_tree[tree_ind];
         new_tree = old_tree;   
     }
+    else
+    {
+        COUT << "accept" << endl;
+        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
+    }
+    
 
     
 

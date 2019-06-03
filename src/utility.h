@@ -165,4 +165,5 @@ void unique_value_count2(const double *Xpointer, xinfo_sizet &Xorder_std, //std:
 double normal_density(double y, double mean, double var, bool take_log);
 
 double get_mean_xinfo(xinfo &X);
+
 #endif
