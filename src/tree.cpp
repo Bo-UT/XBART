@@ -651,6 +651,7 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
         // for leaf node, multply the probability of drawing mu
         // this->prob_split *= 1 / sqrt(2 * 3.14159265359 * (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)))) * exp(0.0 - pow(this -> theta_vector[0] - y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 2) / 2 / (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2) ) ) ); 
         this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
+        // COUT << "likelihood_leaf " << this->loglike_leaf << endl;
         this->prob_leaf = normal_density(this->theta_vector[0], y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)), true);
         return;
     }
@@ -763,6 +764,7 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
         // for leaf node, multply the probability of mu
         // this->prob_split *= 1 / sqrt(2 * 3.14159265359 * (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)))) * exp(0.0 - pow(this -> theta_vector[0] - y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 2) / 2 / (1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2) ) ) ); 
         this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
+        // COUT << "likelihood_leaf " << this->loglike_leaf << endl;
         this->prob_leaf = normal_density(this->theta_vector[0], y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)), true);
         return;
     }
@@ -1005,6 +1007,7 @@ double tree::transition_prob(){
         if(tree_vec[i]->getl() == 0){
             // if no children, it is end node, count leaf parameter probability
             log_p_leaf += tree_vec[i]->getprob_leaf();
+            log_p_cutpoints += log(tree_vec[i]->getprob_split());
         }else{
             // otherwise count cutpoint probability
             log_p_cutpoints += log(tree_vec[i]->getprob_split());
@@ -1067,22 +1070,27 @@ double tree::prior_prob(double tau, double alpha, double beta)
     return output;
 }
 
-double tree::tree_likelihood(size_t N, double sigma, vector<double> y)
+double tree::tree_likelihood(double sigma, std::vector<double> y)
 {
     /*
         This function calculate the log of 
         the likelihood of all leaf parameters of given tree
     */
-    npv tree_vec;
-    this->getbots(tree_vec);
+    // npv tree_vec;
+    // this->getbots(tree_vec);
+    // double output = 0.0;
+    // for(size_t i = 0; i < tree_vec.size(); i++ )
+    // {
+    //     output += tree_vec[i]->loglike_leaf;
+    // }
+    // output = output - N * log(2 * 3.14159265359) / 2 - N * log(sigma) - std::inner_product(y.begin(), y.end(), y.begin(), 0.0) / pow(sigma, 2) / 2;
+    // return output;
     double output = 0.0;
-    for(size_t i = 0; i < tree_vec.size(); i++ )
+    for (size_t i = 0; i < y.size(); i++)
     {
-        output += tree_vec[i]->loglike_leaf;
+        output += normal_density(y[i], 0.0 , pow(sigma, 2), true);
     }
-    output = output - N * log(2 * 3.14159265359) / 2 - N * log(sigma) - std::inner_product(y.begin(), y.end(), y.begin(), 0.0) / pow(sigma, 2) / 2;
     return output;
-
 }
 
 
@@ -2198,7 +2206,7 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, double &accept_prob, double &drawn_accept, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio)
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, double &accept_prob, double &drawn_accept, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio)
 {
     double proposal_old;
     double proposal_new;
@@ -2207,22 +2215,43 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     double prior_old;
     double prior_new;
 
-    vector<double> resid = fit_info->residual_std;
+    std::vector<double> resid = fit_info->residual_std;
+    std::vector<double> resid_full = fit_info->residual_std_full;
 
+    std::vector<double> y_hat_old(resid.size());
+    std::vector<double> y_hat_new(resid.size());
+    predict_from_datapointers(X_std, N, tree_ind, y_hat_old, fit_info->data_pointers_cp, model);
+    predict_from_datapointers(X_std, N, tree_ind, y_hat_new, fit_info->data_pointers, model);
+    std::vector<double> resid_new = resid - y_hat_new;
+    std::vector<double> resid_old = resid - y_hat_old;
+    // if (resid_full != resid_old){COUT << "old resid not match" << endl;}
+    // if(resid_new == resid_old) {COUT <<"pointer error"<<endl;}
+
+
+    // COUT << "old total residual " <<  std::accumulate(resid_old.begin(), resid_old.end(), 0.0) << endl;
+    // COUT << "new total residual " <<  std::accumulate(resid_new.begin(), resid_new.end(), 0.0) << endl;
+
+         
 
     proposal_old = old_tree.transition_prob();
-    likelihood_old = old_tree.tree_likelihood(N, sig, resid);
+    likelihood_old = old_tree.tree_likelihood(sig, resid - y_hat_old);
     prior_old = old_tree.prior_prob(tau, alpha, beta);
     proposal_new = new_tree.transition_prob();
-    likelihood_new = new_tree.tree_likelihood(N, sig, resid);
+    likelihood_new = new_tree.tree_likelihood(sig, resid - y_hat_new);
     prior_new = new_tree.prior_prob(tau, alpha, beta);
+
+    // COUT << "old_tree likelihood " << likelihood_old << endl;
+    // COUT << "new_tree likelihood " << likelihood_new << endl;
 
     COUT << "proposal ratio " << exp(proposal_new - proposal_old) << endl;
     COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
-    COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
-    accept_prob = exp(proposal_new + likelihood_new + prior_new - proposal_old - likelihood_old - prior_old);
+    // COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
+    COUT << "new_tree size " <<  new_tree.treesize() << endl;
+    COUT << "old_tree size " << old_tree.treesize() << endl;
 
-    // COUT << "accept_prob " << accept_prob << endl;
+    accept_prob = exp(proposal_old + likelihood_new + prior_new - proposal_new - likelihood_old - prior_old);
+
+    COUT << "accept_prob " << accept_prob << endl;
 
     proposal_ratio = exp(proposal_new - proposal_old);
     likelihood_ratio = exp(likelihood_new - likelihood_old);
@@ -2232,7 +2261,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     {
         
         COUT << "accept" << endl;
-        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
+        drawn_accept = 1.0;
         return;
     }
 
@@ -2244,13 +2273,6 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     {    
         drawn_accept = 0.0;
         COUT << "reject" << endl;
-        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
-
-        COUT << "proposal ratio " << exp(proposal_new - proposal_old) << endl;
-        COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
-        COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
-        COUT << "accept_prob " << accept_prob << endl;
-
         fit_info->data_pointers = fit_info->data_pointers_cp;
         fit_info->split_count_current_tree = fit_info->split_count_all_tree[tree_ind];
         new_tree = old_tree;   
@@ -2258,7 +2280,6 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, t
     else
     {
         COUT << "accept" << endl;
-        COUT << "tree_size ratio " <<  new_tree.treesize() / old_tree.treesize() << endl;
     }
     
 

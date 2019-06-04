@@ -167,7 +167,7 @@ class tree
     double log_like_tree(double sigma2, double tau);  
 
     double prior_prob(double tau, double alpha, double beta);
-    double tree_likelihood(size_t N, double sigma, vector<double> y);
+    double tree_likelihood(double sigma, vector<double> y);
 
     tree_p bn(double *x, xinfo &xi); //find Bottom Node, original BART version
     tree_p bn_std(double *x);        // find Bottom Node, std version, compare
@@ -223,6 +223,6 @@ void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std:
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind,  double tau, double alpha, double beta, double &accept_prob, double &drawn_accept, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio);
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind,  double tau, double alpha, double beta, double &accept_prob, double &drawn_accept, double &proposal_ratio, double &prior_ratio, double &likelihood_ratio);
 
 #endif
