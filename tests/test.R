@@ -2,7 +2,7 @@
 # set parameters of XBART
 get_XBART_params <- function(n, d, y) {
   XBART_params = list(num_trees = 30,                 # number of trees 
-                      num_sweeps = 50,          # number of sweeps (samples of the forest)
+                      num_sweeps = 120,          # number of sweeps (samples of the forest)
                       n_min = 1,               # minimal node size
                       alpha = 0.95,           # BART prior parameter 
                       beta = 1.25,            # BART prior parameter
