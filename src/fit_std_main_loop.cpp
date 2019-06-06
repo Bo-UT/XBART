@@ -26,7 +26,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
     ini_xinfo(prior_ratio, num_trees, num_sweeps-burnin);
     ini_xinfo(proposal_ratio, num_trees, num_sweeps-burnin);
     ini_xinfo(likelihood_ratio, num_trees, num_sweeps-burnin);
-    
+
 
     if (parallel)
         thread_pool.start();
@@ -48,6 +48,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
     fit_info->residual_std = y_std - fit_info->yhat_std + fit_info->predictions_std[0];
 
     double sigma = 1.0;
+
 
     for (size_t sweeps = 0; sweeps < num_sweeps; sweeps++)
     {
@@ -94,42 +95,50 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             // but they are initialized in fit_info object
             // so I'll pass fit_info->X_counts to root node, then create X_counts_left, X_counts_right for other nodes
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            trees[sweeps][tree_ind].grow_from_root(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);            // metropolis adjustment
             
+            trees[sweeps][tree_ind].grow_from_root(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);            // metropolis adjustment
             // double likelihood_new1;
            
             // Add split counts
             mtry_weight_current_tree = mtry_weight_current_tree + fit_info->split_count_current_tree;
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
 
-            // Update Predict
-            predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
-            COUT << "tree_likelihood " << trees[sweeps][tree_ind].tree_likelihood(sigma, fit_info->residual_std - fit_info->predictions_std[tree_ind]) << endl;
-            
-             if (sweeps >= burnin)
+            if (sweeps >= 15)
             { 
-                fit_info->data_pointers_cp = fit_info->data_pointers;
                 trees[sweeps-1][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
                 // trees[sweeps-1][tree_ind].update_split_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0,  max_depth_std[sweeps][tree_ind],  n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
-                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_prob[sweeps-burnin][tree_ind], drawn_accept[sweeps-burnin][tree_ind], proposal_ratio[sweeps-burnin][tree_ind], prior_ratio[sweeps-burnin][tree_ind], likelihood_ratio[sweeps-burnin][tree_ind]);
+                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_prob[sweeps-burnin][tree_ind], drawn_accept[sweeps-burnin][tree_ind], proposal_ratio[sweeps-burnin][tree_ind], prior_ratio[sweeps-burnin][tree_ind], likelihood_ratio[sweeps-burnin][tree_ind], sweeps);
             }
 
-            // predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers,model);
-
-            double resid_sum;
-            vector<double> resid_full = fit_info->residual_std - fit_info->predictions_std[tree_ind];
+            // Update Predict
+            predict_from_datapointers(Xpointer, N, tree_ind, fit_info->predictions_std[tree_ind], fit_info->data_pointers ,model);
             model->updateResidual(fit_info->predictions_std, tree_ind, num_trees, fit_info->residual_std);
             
 
             fit_info->yhat_std = fit_info->yhat_std + fit_info->predictions_std[tree_ind];
         }
+
+        fit_info->data_pointers_cp = fit_info->data_pointers;
+
         // save predictions to output matrix
         yhats_xinfo[sweeps] = fit_info->yhat_std;
     }
 
     COUT << "accept_ratio: " << get_mean_xinfo(drawn_accept) << endl;
-    COUT << "mean accept_prob " << get_mean_xinfo(accept_prob) << endl;
+    COUT << "mean likelihood ratio" << get_mean_xinfo(likelihood_ratio) << endl;
+
+    std::vector<double> likelihood_favor;
+    for (size_t i = 0; i < likelihood_ratio.size(); i++){
+        for (size_t j = 0; j < likelihood_ratio[i].size(); j++){
+            if (likelihood_ratio[i][j] > 1){
+                likelihood_favor.push_back(1);
+            }
+            else{likelihood_favor.push_back(0);
+            }
+        }
+    }
+    COUT << "mean likelihood favor" << std::accumulate(likelihood_favor.begin(), likelihood_favor.end(), 0.0)/likelihood_favor.size() << endl;
+
     thread_pool.stop();
 
     delete model;
