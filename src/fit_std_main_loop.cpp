@@ -16,16 +16,21 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
     std::vector<double> initial_theta(1,0);
     std::unique_ptr<FitInfo> fit_info (new FitInfo(Xpointer, Xorder_std, N, p, num_trees, p_categorical, p_continuous, set_random_seed, random_seed, &initial_theta));
     
-    xinfo accept_prob;
-    xinfo drawn_accept;
-    xinfo prior_ratio;
-    xinfo proposal_ratio;
-    xinfo likelihood_ratio;
-    ini_xinfo(accept_prob, num_trees, num_sweeps-burnin);
-    ini_xinfo(drawn_accept, num_trees, num_sweeps-burnin);
-    ini_xinfo(prior_ratio, num_trees, num_sweeps-burnin);
-    ini_xinfo(proposal_ratio, num_trees, num_sweeps-burnin);
-    ini_xinfo(likelihood_ratio, num_trees, num_sweeps-burnin);
+    // xinfo accept_prob;
+    // xinfo drawn_accept;
+    // xinfo prior_ratio;
+    // xinfo proposal_ratio;
+    // xinfo likelihood_ratio;
+    // ini_xinfo(accept_prob, num_trees, num_sweeps-burnin);
+    // ini_xinfo(drawn_accept, num_trees, num_sweeps-burnin);
+    // ini_xinfo(prior_ratio, num_trees, num_sweeps-burnin);
+    // ini_xinfo(proposal_ratio, num_trees, num_sweeps-burnin);
+    // ini_xinfo(likelihood_ratio, num_trees, num_sweeps-burnin);
+    std::vector<double> accept_vec;
+    std::vector<double> MH_ratio;
+    std::vector<double> proposal_ratio;
+    std::vector<double> likelihood_ratio;
+    std::vector<double> prior_ratio;
 
 
     if (parallel)
@@ -107,7 +112,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             { 
                 trees[sweeps-1][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
                 // trees[sweeps-1][tree_ind].update_split_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0,  max_depth_std[sweeps][tree_ind],  n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
-                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_prob[sweeps-burnin][tree_ind], drawn_accept[sweeps-burnin][tree_ind], proposal_ratio[sweeps-burnin][tree_ind], prior_ratio[sweeps-burnin][tree_ind], likelihood_ratio[sweeps-burnin][tree_ind], sweeps);
+                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_vec, MH_ratio, proposal_ratio, likelihood_ratio, prior_ratio);
             }
 
             // Update Predict
@@ -118,26 +123,16 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             fit_info->yhat_std = fit_info->yhat_std + fit_info->predictions_std[tree_ind];
         }
 
+        COUT << "average likelihood ratio " << accumulate(likelihood_ratio.begin(), likelihood_ratio.end(), 0.0) / likelihood_ratio.size() << endl;
+        COUT << "average MH ratio " << accumulate(MH_ratio.begin(), MH_ratio.end(), 0.0) / MH_ratio.size() << endl;
+        COUT << "average acceptance " << accumulate(accept_vec.begin(), accept_vec.end(), 0.0) / accept_vec.size() << endl;
+
+
         fit_info->data_pointers_cp = fit_info->data_pointers;
 
         // save predictions to output matrix
         yhats_xinfo[sweeps] = fit_info->yhat_std;
     }
-
-    COUT << "accept_ratio: " << get_mean_xinfo(drawn_accept) << endl;
-    COUT << "mean likelihood ratio" << get_mean_xinfo(likelihood_ratio) << endl;
-
-    std::vector<double> likelihood_favor;
-    for (size_t i = 0; i < likelihood_ratio.size(); i++){
-        for (size_t j = 0; j < likelihood_ratio[i].size(); j++){
-            if (likelihood_ratio[i][j] > 1){
-                likelihood_favor.push_back(1);
-            }
-            else{likelihood_favor.push_back(0);
-            }
-        }
-    }
-    COUT << "mean likelihood favor" << std::accumulate(likelihood_favor.begin(), likelihood_favor.end(), 0.0)/likelihood_favor.size() << endl;
 
     thread_pool.stop();
 
