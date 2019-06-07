@@ -163,11 +163,12 @@ class tree
 
     void update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints, double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, std::vector<double> &mtry_weight_current_tree, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, const size_t &tree_ind, bool sample_weights_flag);
 
-    double transition_prob();
+    double transition_prob(bool normalize);
     double log_like_tree(double sigma2, double tau);  
 
     double prior_prob(double tau, double alpha, double beta);
     double tree_likelihood(std::vector<double> y, std::vector<double> pred, double sigma);
+    double tree_BART_likelihood(std::vector<double> y, double sigma, size_t N);
     double tree_likelihood_cp(size_t N, double sigma, size_t tree_ind, Model *model, std::unique_ptr<FitInfo>& fit_info, const double *Xpointer, vector<double>& y, bool proposal);
 
 
@@ -225,6 +226,6 @@ void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std:
 
 void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind,  double tau, double alpha, double beta, std::vector<double> &accept_vec, std::vector<double> &MH_ratio, std::vector<double> &proposal_ratio, std::vector<double> &likelihood_ratio, std::vector<double> &prior_ratio);
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind,  double tau, double alpha, double beta, std::vector<double> &accept_vec, std::vector<double> &MH_ratio, std::vector<double> &proposal_ratio, std::vector<double> &likelihood_ratio, std::vector<double> &prior_ratio, std::vector<double> &tree_ratio);
 
 #endif

@@ -986,7 +986,7 @@ void tree::update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, 
 
 
 
-double tree::transition_prob(){
+double tree::transition_prob(bool normalize){
     /*
         This function calculate probability of given tree
         log P(all cutpoints) + log P(leaf parameters)
@@ -1005,7 +1005,7 @@ double tree::transition_prob(){
     for(size_t i = 0; i < tree_vec.size(); i++ ){
         if(tree_vec[i]->getl() == 0){
             // if no children, it is end node, count leaf parameter probability
-            log_p_leaf += tree_vec[i]->getprob_leaf();
+            // log_p_leaf += tree_vec[i]->getprob_leaf();
             log_p_cutpoints += log(tree_vec[i]->getprob_split());
         }else{
             // otherwise count cutpoint probability
@@ -1013,6 +1013,10 @@ double tree::transition_prob(){
         }
     }
     output = log_p_cutpoints + log_p_leaf;
+    
+    if (normalize){
+        output = output / this->treesize();
+    }
 
     return output;
 };
@@ -1089,6 +1093,23 @@ double tree::tree_likelihood(std::vector<double> y, std::vector<double> pred, do
     {
         output += normal_density(y[i], pred[i] , pow(sigma, 2), true);
     }
+    return output;
+}
+
+double tree::tree_BART_likelihood(std::vector<double> y,  double sigma, size_t N)
+{
+    /*
+        This function calculate the log of 
+        the likelihood of all leaf parameters of given tree
+    */
+    npv tree_vec;
+    this->getbots(tree_vec);
+    double output = 0.0;
+    for(size_t i = 0; i < tree_vec.size(); i++ )
+    {
+        output += tree_vec[i]->loglike_leaf;
+    }
+    output = output - N * log(2 * 3.14159265359) / 2 - N * log(sigma) - std::inner_product(y.begin(), y.end(), y.begin(), 0.0) / pow(sigma, 2) / 2;
     return output;
 }
 
@@ -2230,7 +2251,7 @@ void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vec
     return;
 }
 
-void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, std::vector<double> &accept_vec, std::vector<double> &MH_ratio, std::vector<double> &proposal_ratio, std::vector<double> &likelihood_ratio, std::vector<double> &prior_ratio)
+void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, double tau, double alpha, double beta, std::vector<double> &accept_vec, std::vector<double> &MH_ratio, std::vector<double> &proposal_ratio, std::vector<double> &likelihood_ratio, std::vector<double> &prior_ratio, std::vector<double> &tree_ratio)
 {
     double proposal_old;
     double proposal_new;
@@ -2254,12 +2275,13 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
 
          
 
-    proposal_old = old_tree.transition_prob();
-    likelihood_old = old_tree.tree_likelihood(resid, y_hat_old, sig);
-    // tree_likelihood(N, sigma, tree_ind, model, fit_info, Xpointer, fit_info->residual_std, false);
+    proposal_old = old_tree.transition_prob(true);
+    // likelihood_old = old_tree.tree_likelihood(resid, y_hat_old, sig);
+    likelihood_old = old_tree.tree_BART_likelihood(resid, sig, resid.size());
     prior_old = old_tree.prior_prob(tau, alpha, beta);
-    proposal_new = new_tree.transition_prob();
-    likelihood_new = new_tree.tree_likelihood(resid , y_hat_new, sig);
+    proposal_new = new_tree.transition_prob(true);
+    // likelihood_new = new_tree.tree_likelihood(resid , y_hat_new, sig);
+    likelihood_new = new_tree.tree_BART_likelihood(resid, sig, resid.size());
     prior_new = new_tree.prior_prob(tau, alpha, beta);
 
     // COUT << "old_tree likelihood " << likelihood_old << endl;
@@ -2278,6 +2300,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
     proposal_ratio.push_back(exp(proposal_new - proposal_old));
     likelihood_ratio.push_back(exp(likelihood_new - likelihood_old));
     prior_ratio.push_back(exp(prior_new - prior_old));
+    tree_ratio.push_back((double) new_tree.treesize() / old_tree.treesize());
 
     if (accept_prob > 1)
     {

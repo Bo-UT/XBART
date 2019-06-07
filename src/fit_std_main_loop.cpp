@@ -31,6 +31,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
     std::vector<double> proposal_ratio;
     std::vector<double> likelihood_ratio;
     std::vector<double> prior_ratio;
+    std::vector<double> tree_ratio;
 
 
     if (parallel)
@@ -102,8 +103,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
             trees[sweeps][tree_ind].grow_from_root(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);            // metropolis adjustment
-            // double likelihood_new1;
-           
+
             // Add split counts
             mtry_weight_current_tree = mtry_weight_current_tree + fit_info->split_count_current_tree;
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
@@ -112,7 +112,7 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             { 
                 trees[sweeps-1][tree_ind].recalculate_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0, max_depth_std[sweeps][tree_ind], n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
                 // trees[sweeps-1][tree_ind].update_split_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0,  max_depth_std[sweeps][tree_ind],  n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
-                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_vec, MH_ratio, proposal_ratio, likelihood_ratio, prior_ratio);
+                metropolis_adjustment(fit_info, Xpointer, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], N, sigma, tree_ind, tau, alpha, beta, accept_vec, MH_ratio, proposal_ratio, likelihood_ratio, prior_ratio, tree_ratio);
             }
 
             // Update Predict
@@ -123,9 +123,24 @@ void fit_std(const double *Xpointer, std::vector<double> &y_std, double y_mean, 
             fit_info->yhat_std = fit_info->yhat_std + fit_info->predictions_std[tree_ind];
         }
 
-        COUT << "average likelihood ratio " << accumulate(likelihood_ratio.begin(), likelihood_ratio.end(), 0.0) / likelihood_ratio.size() << endl;
+        // COUT << "average likelihood ratio " << accumulate(likelihood_ratio.begin(), likelihood_ratio.end(), 0.0) / likelihood_ratio.size() << endl;
         COUT << "average MH ratio " << accumulate(MH_ratio.begin(), MH_ratio.end(), 0.0) / MH_ratio.size() << endl;
         COUT << "average acceptance " << accumulate(accept_vec.begin(), accept_vec.end(), 0.0) / accept_vec.size() << endl;
+        double accept_tree_ratio = 0.0;
+        double reject_tree_ratio = 0.0;
+        for (size_t i = 0; i < accept_vec.size(); i++){
+            if (accept_vec[i] == 1.0){
+                accept_tree_ratio += tree_ratio[i];
+            }
+            else{
+                reject_tree_ratio += tree_ratio[i];
+            }
+        }
+        accept_tree_ratio = accept_tree_ratio / accumulate(accept_vec.begin(), accept_vec.end(), 0.0);
+        reject_tree_ratio = reject_tree_ratio / (accept_vec.size() - accumulate(accept_vec.begin(), accept_vec.end(), 0.0));
+        COUT << "accepted tree ratio " << accept_tree_ratio << endl;
+        COUT << "rejected tree ratio " << reject_tree_ratio << endl;
+
 
 
         fit_info->data_pointers_cp = fit_info->data_pointers;
