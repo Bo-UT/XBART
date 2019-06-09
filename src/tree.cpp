@@ -637,6 +637,7 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
 
     this->subset_vars = subset_vars;
 
+    
     BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, fit_info, this->drawn_ind);
 
     if (no_split == true)
@@ -693,6 +694,8 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
 
     std::vector<size_t> X_counts_left(X_counts.size());
     std::vector<size_t> X_counts_right(X_counts.size());
+
+
 
     if (p_categorical > 0)
     {
@@ -986,7 +989,7 @@ void tree::update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, 
 
 
 
-double tree::transition_prob(bool normalize){
+double tree::transition_prob(){
     /*
         This function calculate probability of given tree
         log P(all cutpoints) + log P(leaf parameters)
@@ -1013,10 +1016,7 @@ double tree::transition_prob(bool normalize){
         }
     }
     output = log_p_cutpoints + log_p_leaf;
-    
-    if (normalize){
-        output = output / this->treesize();
-    }
+
 
     return output;
 };
@@ -1061,7 +1061,7 @@ double tree::prior_prob(double tau, double alpha, double beta)
     for(size_t i = 0; i < tree_vec.size(); i++ ){
         if(tree_vec[i]->getl() == 0){
             // if no children, it is end node, count leaf parameter probability
-            log_leaf_prob += normal_density(tree_vec[i]->theta_vector[0], 0.0, tau, true);
+            // log_leaf_prob += normal_density(tree_vec[i]->thetat_vector[0], 0.0, tau, true);
             log_split_prob += log(1 - alpha * pow((1 + tree_vec[i]->depth()), -beta));
         }else{
             // otherwise count cutpoint probability
@@ -2275,11 +2275,11 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
 
          
 
-    proposal_old = old_tree.transition_prob(true);
+    proposal_old = old_tree.transition_prob();
     // likelihood_old = old_tree.tree_likelihood(resid, y_hat_old, sig);
     likelihood_old = old_tree.tree_BART_likelihood(resid, sig, resid.size());
     prior_old = old_tree.prior_prob(tau, alpha, beta);
-    proposal_new = new_tree.transition_prob(true);
+    proposal_new = new_tree.transition_prob();
     // likelihood_new = new_tree.tree_likelihood(resid , y_hat_new, sig);
     likelihood_new = new_tree.tree_BART_likelihood(resid, sig, resid.size());
     prior_new = new_tree.prior_prob(tau, alpha, beta);
