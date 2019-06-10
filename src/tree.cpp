@@ -2577,7 +2577,9 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
     proposal_ratio.push_back(exp(proposal_new - proposal_old));
     likelihood_ratio.push_back(exp(likelihood_new - likelihood_old));
     prior_ratio.push_back(exp(prior_new - prior_old));
-    COUT << "prior_ratio " << exp(prior_new - prior_old) << endl;
+    if (exp(prior_new - prior_old) >= 1e36){
+        COUT << "prior_ratio " << exp(prior_new - prior_old) << endl;
+    }
     tree_ratio.push_back((double) new_tree.treesize() / old_tree.treesize());
 
     if (accept_prob > 1)
