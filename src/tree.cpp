@@ -382,6 +382,10 @@ void tree::cp(tree_p n, tree_cp o)
     n->drawn_ind = o->drawn_ind;
     n->N_Xorder = o->N_Xorder;
     n->y_mean = o->y_mean;
+    n->loglike_leaf = o->loglike_leaf;
+    n->tree_like = o->tree_like;
+    n->theta_vector = o-> theta_vector;
+    n-> num_cutpoint_candidates = o->num_cutpoint_candidates; ; 
     // n->split_var = o->split_var;
     // n->split_point = o->split_point;
     // n->no_split = o->no_split;
@@ -546,6 +550,69 @@ void cumulative_sum_std(std::vector<double> &y_cumsum, std::vector<double> &y_cu
 }
 
 
+double tree::tree_likelihood(size_t N, double sigma, size_t tree_ind, Model *model, std::unique_ptr<FitInfo>& fit_info, const double *Xpointer, vector<double>& y, bool proposal)
+{
+    /*
+        This function calculate the log of 
+        the likelihood of all leaf parameters of given tree
+    */
+    double output = 0.0;
+    std::vector<double> pred(N);
+    if(proposal){
+        // calculate likelihood of proposal
+        predict_from_datapointers(Xpointer, N, tree_ind, pred, fit_info->data_pointers, model);
+    }else{
+        // calculate likelihood of previous accpeted tree
+        predict_from_datapointers(Xpointer, N, tree_ind, pred, fit_info->data_pointers_copy, model);
+    }
+    
+    double sigma2 = pow(sigma, 2);
+
+    for(size_t i = 0; i < N; i ++ ){
+        output = output + normal_density(y[i], pred[i], sigma2, true);
+    }
+
+    return output;
+}
+
+
+double tree::prior_prob(double tau, double alpha, double beta)
+{
+    /*
+        This function calculate the log of 
+        the prior probability of drawing the given tree
+    */
+    double output = 0.0;
+    double log_split_prob = 0.0;
+    double log_leaf_prob = 0.0;
+    npv tree_vec;
+
+    // get a vector of all nodess
+    this->getnodes(tree_vec);
+
+    for(size_t i = 0; i < tree_vec.size(); i++ ){
+        if(tree_vec[i]->getl() == 0){
+            // if no children, it is end node, count leaf parameter probability
+
+            // leaf prob, normal center at ZERO
+            // log_leaf_prob += normal_density(tree_vec[i]->theta_vector[0], 0.0, tau, true);
+
+            // log_split_prob += log(1 - alpha * pow((1 + tree_vec[i]->depth()), -beta));
+            log_split_prob += log(1.0 - alpha * pow((1 + tree_vec[i]->depth()), -1.0 * beta));
+
+        }else{
+            // otherwise count cutpoint probability
+            // log_split_prob += log(alpha * pow((1.0 + tree_vec[i]->depth()), -beta));
+
+            log_split_prob += log(alpha) - beta * log(1.0 + tree_vec[i]->depth());
+        }
+        log_split_prob = log_split_prob - log(tree_vec[i]->getnum_cutpoint_candidates());
+    }
+    output = log_split_prob + log_leaf_prob;
+    // output = log_split_prob;
+    return output;
+}
+
 
 void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints, double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, std::vector<double> &mtry_weight_current_tree, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, const size_t &tree_ind, bool sample_weights_flag)
 
@@ -638,7 +705,7 @@ void tree::grow_from_root(std::unique_ptr<FitInfo>& fit_info, double y_mean, siz
     this->subset_vars = subset_vars;
 
     
-    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, fit_info, this->drawn_ind);
+    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, fit_info, this->drawn_ind, this->num_cutpoint_candidates);
 
     if (no_split == true)
     {
@@ -814,12 +881,215 @@ void tree::recalculate_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, s
     return;
 }
 
+void tree::grow_from_root_MH(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints, double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, std::vector<double> &mtry_weight_current_tree, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, const size_t &tree_ind, bool sample_weights_flag)
+
+{
+    // // load necessary values
+    // y_std = fit_info->residual_std;
+    // use_all = fit_info->use_all;
+    // split_count_all_tree = fit_info->split_count_all_tree; // never used?
+    // split_count_current_tree = fit_info->split_count_current_tree;
+    // categorical_variables = fit_info->categorical_variables; // never used?
+    // X_values = fit_info->X_values;
+    // X_counts = fit_info->X_counts; // should not be in fit_info?
+    // variable_ind = fit_info->variable_ind;
+    // X_num_unique = fit_info->X_num_unique;   // should not be in fit_info
+    // data_pointers = fit_info->data_pointers;
+    // gen = fit_info->gen;
+
+
+
+    // grow a tree, users can control number of split points
+    size_t N_Xorder = Xorder_std[0].size();
+    size_t p = Xorder_std.size();
+    size_t N_y = fit_info->residual_std.size();
+    size_t ind;
+    size_t split_var;
+    size_t split_point;
+    
+    // y_mean = sum_vec(fit_info->residual_std) / (double) N_Xorder;
+
+    // cout << fit_info -> residual_std[1] << endl;
+
+    // this -> y_mean = y_mean;
+    this->setN_Xorder(N_Xorder);
+    this->sety_mean(y_mean);
+    
+    // cout << "initaliz y_mean " << y_mean << "  "  << this->y_mean << endl;
+    // cout << "set N_Xorder "  << N_Xorder << "   " << this->N_Xorder << endl;
+
+    if (N_Xorder <= Nmin)
+    {
+        return;
+    }
+
+    if (depth >= max_depth - 1)
+    {
+        return;
+    }
+
+    // tau is prior VARIANCE, do not take squares
+
+    model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, fit_info->gen, this->theta_vector, fit_info->residual_std, Xorder_std, this->prob_leaf);
+
+    this->sig = sigma;
+    bool no_split = false;
+
+    std::vector<size_t> subset_vars(p);
+
+    if (fit_info->use_all)
+    {
+        std::iota(subset_vars.begin(), subset_vars.end(), 0);
+
+    }
+    else
+    {
+        if (sample_weights_flag){
+            std::vector<double> weight_samp(p);
+            double weight_sum;
+
+            // Sample Weights Dirchelet
+            for (size_t i=0; i < p; i++)
+            {
+                std::gamma_distribution<double> temp_dist(mtry_weight_current_tree[i], 1.0);
+                weight_samp[i] = temp_dist(fit_info->gen);
+            }
+            weight_sum =  accumulate(weight_samp.begin(), weight_samp.end(), 0.0);
+            for (size_t i=0; i < p; i++)
+            {
+                weight_samp[i] = weight_samp[i] / weight_sum;
+
+            }
+
+            subset_vars = sample_int_ccrank(p, mtry, weight_samp, fit_info->gen);
+        }else{
+            subset_vars = sample_int_ccrank(p, mtry, mtry_weight_current_tree, fit_info->gen);
+        }
+        
+    }
+
+
+    BART_likelihood_all(y_mean * N_Xorder, Xorder_std, X_std, tau, sigma, depth, Nmin, Ncutpoints, alpha, beta, no_split, split_var, split_point, parallel, subset_vars, p_categorical, p_continuous, X_counts, X_num_unique, model, mtry, this->prob_split, fit_info, this->drawn_ind, this->num_cutpoint_candidates);
+
+    // this->setsplit_point(split_point);
+    // this->setsplit_var(split_var);
+    // this->setno_split(no_split);
+
+
+
+    if (no_split == true)
+    {
+         for (size_t i = 0; i < N_Xorder; i++)
+        {
+            fit_info->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+        }
+        model->samplePars(draw_mu, y_mean, N_Xorder, sigma, tau, fit_info->gen, this->theta_vector, fit_info->residual_std, Xorder_std, this->prob_leaf);
+        this->l = 0;
+        this->r = 0;
+
+
+
+
+        /////////////////////////////////
+        //
+        //
+        // Main modification, update leaf prob 
+        //
+        //
+        /////////////////////////////////
+        // this is loglike of leaf data, without normalizing constant
+        // will add it back later
+
+
+        this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
+
+        // cout << "loglike _ leaf " << loglike_leaf << endl;
+
+        this->prob_leaf = normal_density(this->theta_vector[0], y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)), true);
+
+
+        return;
+    }
+
+
+    this->v = split_var;
+    this->c = *(X_std + N_y * split_var + Xorder_std[split_var][split_point]);
+
+
+    // Update Cutpoint to be a true seperating point
+    // Increase split_point (index) until it is no longer equal to cutpoint value
+    while ((split_point < N_Xorder - 1) && (*(X_std + N_y * split_var + Xorder_std[split_var][split_point + 1]) == this->c))
+    {
+        split_point = split_point + 1;
+    }
+    
+    // If our current split is same as parent, exit
+    if ( (this->p) && (this->v == (this->p)->v) && (this->c == (this->p)->c) ) {
+        return;
+    }
+
+
+    fit_info->split_count_current_tree[split_var] = fit_info->split_count_current_tree[split_var] + 1;
+
+    //COUT << split_count_current_tree << endl;
+
+    xinfo_sizet Xorder_left_std;
+    xinfo_sizet Xorder_right_std;
+    ini_xinfo_sizet(Xorder_left_std, split_point + 1, p);
+    ini_xinfo_sizet(Xorder_right_std, N_Xorder - split_point - 1, p);
+
+    double yleft_mean_std = 0.0;
+    double yright_mean_std = 0.0;
+
+    std::vector<size_t> X_num_unique_left(X_num_unique.size());
+    std::vector<size_t> X_num_unique_right(X_num_unique.size());
+
+    std::vector<size_t> X_counts_left(X_counts.size());
+    std::vector<size_t> X_counts_right(X_counts.size());
+
+    if (p_categorical > 0)
+    {
+        split_xorder_std_categorical(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, X_counts_left, X_counts_right, X_num_unique_left, X_num_unique_right, X_counts, model, fit_info);
+    }
+
+    if (p_continuous > 0)
+    {
+        split_xorder_std_continuous(Xorder_left_std, Xorder_right_std, split_var, split_point, Xorder_std, X_std, N_y, p, p_continuous, p_categorical, yleft_mean_std, yright_mean_std, y_mean, model, fit_info);
+    }
+
+    depth++;
+
+    tree::tree_p lchild = new tree(model->getNumClasses(),this);
+    lchild->grow_from_root_MH(fit_info, yleft_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_left_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_left, X_num_unique_left, model, tree_ind, sample_weights_flag);
+
+    tree::tree_p rchild = new tree(model->getNumClasses(),this);
+    rchild->grow_from_root_MH(fit_info, yright_mean_std, depth, max_depth, Nmin, Ncutpoints, tau, sigma, alpha, beta,
+                                       draw_mu, parallel, Xorder_right_std, X_std, mtry,
+                                       mtry_weight_current_tree, p_categorical, p_continuous,
+                                       X_counts_right, X_num_unique_right, model, tree_ind, sample_weights_flag);
+
+    this->l = lchild;
+    this->r = rchild;
+
+    return;
+}
+
+
+
+
+
+
+
 void tree::update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, size_t Nmin, size_t Ncutpoints, double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel, xinfo_sizet &Xorder_std, const double *X_std, size_t &mtry, std::vector<double> &mtry_weight_current_tree, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, const size_t &tree_ind, bool sample_weights_flag)
 {
     /*
         This function update probability of GIVEN split point on new residual
         Used in Metropolis-Hastings adjustment
         Evaluate the old tree strcutrue on new residual
+        Basically copy from grow_frow_root_MH, get rid of sampling cutpoints part
     */
 
 
@@ -908,13 +1178,27 @@ void tree::update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, 
         this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
  
 
+
+        /////////////////////////////////
+        //
+        //
+        // Main modification, update leaf prob 
+        //
+        //
+        /////////////////////////////////
+        // this is loglike of leaf data, without normalizing constant
+        // will add it back later
+
+
+        this->loglike_leaf = model->likelihood_no_split(y_mean * N_Xorder, tau, N_Xorder * tau, pow(sigma, 2));
+
         this->prob_leaf = normal_density(this->theta_vector[0], y_mean * N_Xorder / pow(sigma, 2) / (1.0 / tau + N_Xorder / pow(sigma, 2)), 1.0 / (1.0 / tau + N_Xorder / pow(sigma, 2)), true);
 
 
         // cout <<" after  " << this-> prob_leaf << endl;
 
-        // this->l = 0;
-        // this->r = 0;
+        this->l = 0;
+        this->r = 0;
         return;
     }
 
@@ -1015,6 +1299,8 @@ double tree::transition_prob(){
             log_p_cutpoints += log(tree_vec[i]->getprob_split());
         }
     }
+    // cout << "log_p_cutpoints " << log_p_cutpoints << endl;
+    // cout << "log_p_leaf " << log_p_leaf << endl;
     output = log_p_cutpoints + log_p_leaf;
 
 
@@ -1038,40 +1324,11 @@ double tree::log_like_tree(double sigma2, double tau){
         output += 0.5 * (log(sigma2 / (sigma2 + tau * tree_vec[i]->getN_Xorder())) + tau / sigma2 / (sigma2 + tau * tree_vec[i]->getN_Xorder()) * pow(tree_vec[i]->getN_Xorder() * tree_vec[i]->gety_mean(), 2));
     }
 
-    cout << "output of log_like_tree  " << output << endl;
+    // cout << "output of log_like_tree  " << output << endl;
 
     return output;
 }
 
-
-double tree::prior_prob(double tau, double alpha, double beta)
-{
-    /*
-        This function calculate the log of 
-        the prior probability of drawing the given tree
-    */
-    double output = 0.0;
-    double log_split_prob = 0.0;
-    double log_leaf_prob = 0.0;
-    npv tree_vec;
-
-    // get a vector of all nodess
-    this->getnodes(tree_vec);
-
-    for(size_t i = 0; i < tree_vec.size(); i++ ){
-        if(tree_vec[i]->getl() == 0){
-            // if no children, it is end node, count leaf parameter probability
-            // log_leaf_prob += normal_density(tree_vec[i]->thetat_vector[0], 0.0, tau, true);
-            log_split_prob += log(1 - alpha * pow((1 + tree_vec[i]->depth()), -beta));
-        }else{
-            // otherwise count cutpoint probability
-            log_split_prob += log(alpha * pow((1 + tree_vec[i]->depth()), -beta));
-        }
-    }
-    output = log_split_prob + log_leaf_prob;
-
-    return output;
-}
 
 double tree::tree_likelihood(std::vector<double> y, std::vector<double> pred, double sigma)
 {
@@ -1418,7 +1675,7 @@ void split_xorder_std_categorical(xinfo_sizet &Xorder_left_std, xinfo_sizet &Xor
     return;
 }
 
-void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, std::unique_ptr<FitInfo>& fit_info, size_t &drawn_ind)
+void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_std, double tau, double sigma, size_t depth, size_t Nmin, size_t Ncutpoints, double alpha, double beta, bool &no_split, size_t &split_var, size_t &split_point, bool parallel, const std::vector<size_t> &subset_vars, size_t &p_categorical, size_t &p_continuous, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, size_t &mtry, double &prob_split, std::unique_ptr<FitInfo>& fit_info, size_t &drawn_ind, size_t &num_cutpoint_candidates)
 {
     // compute BART posterior (loglikelihood + logprior penalty)
 
@@ -1506,6 +1763,12 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
 
         std::discrete_distribution<> d(loglike.begin(), loglike.end());
         // sample one index of split point
+        num_cutpoint_candidates = count_non_zero(loglike); 
+        if (num_cutpoint_candidates == 1){
+            COUT << "num_cutpoint = 1 loglike " << loglike << endl;
+        }
+
+        
 
         ind = d(fit_info->gen);
         drawn_ind = ind;
@@ -1571,6 +1834,10 @@ void BART_likelihood_all(double y_sum, xinfo_sizet &Xorder_std, const double *X_
 
         std::discrete_distribution<size_t> d(loglike.begin(), loglike.end());
         // // sample one index of split point
+        num_cutpoint_candidates = count_non_zero(loglike); 
+        if (num_cutpoint_candidates == 1){
+            COUT << "num_cutpoint = 1 loglike " << loglike << endl;
+        }
         ind = d(fit_info->gen);
         drawn_ind = ind;
 
@@ -1815,12 +2082,21 @@ void BART_likelihood_update_old_tree(double y_sum, xinfo_sizet &Xorder_std, cons
 
         std::discrete_distribution<> d(loglike.begin(), loglike.end());
         // sample one index of split point
+
+        /*
+
+            Do not sample cutpoints, but read previous cutpoints
+            drawn_ind is saved in tree class
+
+        */
+
         // ind = d(fit_info->gen);
         // drawn_ind = ind;
         ind = drawn_ind;
 
         // save the posterior of the chosen split point
         vec_sum(loglike, prob_split);
+        // loglike is already taken exp
         prob_split = loglike[ind] / prob_split;
 
         if (ind == loglike.size() - 1)
@@ -2176,9 +2452,11 @@ void calculate_loglikelihood_categorical(std::vector<double> &loglike, size_t &l
 
 void calculate_likelihood_no_split(std::vector<double> &loglike, size_t &N_Xorder, size_t &Nmin, const double &y_sum, const double &beta, const double &alpha, size_t &depth, const size_t &p, size_t &p_continuous, size_t &Ncutpoints, double &tau, double &sigma2, double &loglike_max, Model *model, size_t &mtry, size_t &total_categorical_split_candidates)
 {
+   
+    // loglike[loglike.size() - 1] = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) + log(1.0 - alpha * pow(1.0 + depth, -1.0 * beta)) - log(alpha) + beta * log(1.0 + depth);
+    // loglike[loglike.size() - 1] += log(p) + log(2.0) + model->getNoSplitPenality();
 
-    loglike[loglike.size() - 1] = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) + log(1.0 - alpha * pow(1.0 + depth, -1.0 * beta)) - log(alpha) + beta * log(1.0 + depth);
-
+    loglike[loglike.size() - 1] = model->likelihood_no_split(y_sum, tau, N_Xorder * tau, sigma2) + log(loglike.size()-1) + log(pow(1.0 + depth, beta)/alpha - 1.0);
     // then adjust according to number of variables and split points
 
     ////////////////////////////////////////////////////////////////
@@ -2195,7 +2473,6 @@ void calculate_likelihood_no_split(std::vector<double> &loglike, size_t &N_Xorde
     //
     ////////////////////////////////////////////////////////////////
 
-    loglike[loglike.size() - 1] += log(p) + log(2.0) + model->getNoSplitPenality();
 
     ////////////////////////////////////////////////////////////////
     // The loop below might be useful when test different weights
@@ -2300,6 +2577,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
     proposal_ratio.push_back(exp(proposal_new - proposal_old));
     likelihood_ratio.push_back(exp(likelihood_new - likelihood_old));
     prior_ratio.push_back(exp(prior_new - prior_old));
+    COUT << "prior_ratio " << exp(prior_new - prior_old) << endl;
     tree_ratio.push_back((double) new_tree.treesize() / old_tree.treesize());
 
     if (accept_prob > 1)

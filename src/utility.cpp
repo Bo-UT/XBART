@@ -482,16 +482,14 @@ double normal_density(double y, double mean, double var, bool take_log){
     return output;
 }
 
-double get_mean_xinfo(xinfo &X){
-    double output = 0.0;
-    std::vector<double> X_vec;
-    for (size_t i = 0; i < X.size(); i++){
-        for (size_t j = 0; j < X[i].size(); j++){
-            X_vec.push_back(X[i][j]);
+size_t count_non_zero(std::vector<double> &vec){
+    size_t output = 0;
+    for(size_t i = 0; i < vec.size(); i ++ ){
+        if(vec[i] != 0){
+            output ++ ;
         }
     }
-    vec_sum(X_vec, output);
-    output = output / X_vec.size();
-
     return output;
 }
+
+
