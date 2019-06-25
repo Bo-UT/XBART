@@ -84,7 +84,7 @@ void rcpp_to_std2(arma::mat y, arma::mat X, arma::mat Xtest, arma::mat max_depth
 
     return;
 }
-
+ 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
 Rcpp::List XBART(arma::mat y, arma::mat X, arma::mat Xtest,

@@ -78,17 +78,19 @@ void fit_std(std::vector<double> &y_std, double y_mean, xinfo_sizet &Xorder_std,
             // set sufficient statistics at root node first 
             trees[sweeps][tree_ind].suff_stat[0] = sum_vec(fit_info->residual_std) / (double) fit_info->n_y;
             trees[sweeps][tree_ind].suff_stat[1] = sum_squared(fit_info->residual_std);
-
+            COUT <<"GFR" << endl;
             trees[sweeps][tree_ind].grow_from_root(fit_info, max_depth_std[sweeps][tree_ind], Xorder_std, mtry_weight_current_tree, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, prior, root_data, true, false, true);
-
+COUT <<"finish GFR" << endl;
             // Add split counts
             mtry_weight_current_tree = mtry_weight_current_tree + fit_info->split_count_current_tree;
             fit_info->split_count_all_tree[tree_ind] = fit_info->split_count_current_tree;
 
             if (sweeps >= burnin)
             { 
+                COUT << "recal" << endl;
                 trees[sweeps-1][tree_ind].recalculate_prob(fit_info, max_depth_std[sweeps][tree_ind], Xorder_std, mtry_weight_current_tree, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, prior, root_data, true, false, true);
                 // trees[sweeps-1][tree_ind].update_split_prob(fit_info, sum_vec(fit_info->residual_std) / (double)N, 0,  max_depth_std[sweeps][tree_ind],  n_min, Ncutpoints, tau, sigma, alpha, beta, draw_mu, parallel, Xorder_std, Xpointer, mtry, mtry_weight_current_tree, p_categorical, p_continuous, fit_info->X_counts, fit_info->X_num_unique, model, tree_ind, sample_weights_flag);
+                COUT << "mh" << endl;
                 metropolis_adjustment(fit_info, fit_info->X_std, model, trees[sweeps-1][tree_ind], trees[sweeps][tree_ind], fit_info->n_y, sigma, tree_ind, prior,  accept_count, MH_vector, Q_ratio, P_ratio, prior_ratio, tree_ratio);
             }
             
@@ -102,27 +104,29 @@ void fit_std(std::vector<double> &y_std, double y_mean, xinfo_sizet &Xorder_std,
         }
 
         // COUT << "average likelihood ratio " << accumulate(likelihood_ratio.begin(), likelihood_ratio.end(), 0.0) / likelihood_ratio.size() << endl;
-        COUT << "average MH ratio " << accumulate(MH_vector.begin(), MH_vector.end(), 0.0) / MH_vector.size() << endl;
-        COUT << "average acceptance " << accumulate(accept_count.begin(), accept_count.end(), 0.0) / accept_count.size() << endl;
-        double accept_tree_ratio = 0.0;
-        double reject_tree_ratio = 0.0;
-        for (size_t i = 0; i < accept_count.size(); i++){
-            if (accept_count[i] == 1.0){
-                accept_tree_ratio += tree_ratio[i];
+        if (sweeps >= burnin)
+        {
+            COUT << "average MH ratio " << accumulate(MH_vector.end() - fit_info->num_trees, MH_vector.end(), 0.0) / fit_info->num_trees << endl;
+            COUT << "average acceptance " << accumulate(accept_count.end() - fit_info->num_trees, accept_count.end(), 0.0) / fit_info->num_trees << endl;
+            
+            double accept_tree_ratio = 0.0;
+            double reject_tree_ratio = 0.0;
+            for (size_t i = accept_count.size() - fit_info->num_trees; i < accept_count.size(); i++){
+                if (accept_count[i] == 1.0){
+                    accept_tree_ratio += tree_ratio[i];
+                }
+                else{
+                    reject_tree_ratio += tree_ratio[i];
+                }
             }
-            else{
-                reject_tree_ratio += tree_ratio[i];
-            }
+            accept_tree_ratio = accept_tree_ratio / fit_info->num_trees;
+            reject_tree_ratio = reject_tree_ratio / fit_info->num_trees;
+            COUT << "accepted tree ratio " << accept_tree_ratio << endl;
+            COUT << "rejected tree ratio " << reject_tree_ratio << endl;
+            
         }
-        accept_tree_ratio = accept_tree_ratio / accumulate(accept_count.begin(), accept_count.end(), 0.0);
-        reject_tree_ratio = reject_tree_ratio / (accept_count.size() - accumulate(accept_count.begin(), accept_count.end(), 0.0));
-        COUT << "accepted tree ratio " << accept_tree_ratio << endl;
-        COUT << "rejected tree ratio " << reject_tree_ratio << endl;
-
-
 
         fit_info->data_pointers_cp = fit_info->data_pointers;
-
         // save predictions to output matrix
         yhats_xinfo[sweeps] = fit_info->yhat_std;
     }
