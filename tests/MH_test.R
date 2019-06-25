@@ -2,12 +2,12 @@
 # set parameters of XBART
 get_XBART_params <- function(n, d, y) {
   XBART_params = list(num_trees = 30,                 # number of trees 
-                      num_sweeps = 1000,           # number of sweeps (samples of the forest)
+                      num_sweeps = 40,           # number of sweeps (samples of the forest)
                       n_min = 1,               # minimal node size
                       alpha = 0.95,           # BART prior parameter 
                       beta = 1.25,            # BART prior parameter
                       mtry = 20,               # number of variables sampled in each split
-                      burnin = 120,
+                      burnin = 15,
                       no_split_penality = "Auto"
                       )            # burnin of MCMC sample
   num_tress = XBART_params$num_trees
@@ -21,7 +21,7 @@ get_XBART_params <- function(n, d, y) {
 #######################################################################
 library(XBART)
 
-set.seed(200)
+set.seed(100)
 d = 20 # number of TOTAL variables
 dcat = 10 # number of categorical variables
 # must be d >= dcat
@@ -161,34 +161,14 @@ print(paste("rmse of fit dbart: ", round(sqrt(mean((fhat.db - ftest) ^ 2)), digi
 print(paste("running time, dbarts", time_dbarts))
 print(paste("running time, XBART", time_XBART))
 
-par(mfrow = c(2,3))
+
 plot(ftest, fhat.db, pch = 20, col = 'orange')
 points(ftest, fhat.1, pch = 20, col = 'slategray')
 legend("topleft", c("dbarts", "XBART"), col = c("orange", "slategray"), pch = c(20, 20))
 
 
-ave_MH = rep(0, length(fit$MH) / params$num_trees)
-ave_P = ave_MH
-ave_Q = ave_MH
-ave_prior = ave_MH
-
-for(i in 1:length(ave_MH)){
-  ave_MH[i] = mean(fit$MH[((i-1) * params$num_trees + 1) :  (i * params$num_trees)])
-  ave_P[i] = mean(fit$P_ratio[((i-1) * params$num_trees + 1) :  (i * params$num_trees)])
-  ave_Q[i] = mean(fit$Q_ratio[((i-1) * params$num_trees + 1) :  (i * params$num_trees)])
-  ave_prior[i] = mean(fit$prior_ratio[((i-1) * params$num_trees + 1) :  (i * params$num_trees)])
-}
-plot(fit$sigma[1,], main = "sigma")
-plot(ave_MH, main = "MH ratio")
-plot(ave_P, main = "P_new - P_old")
-plot(ave_Q, main = "Q_old - Q_new")
-plot(ave_prior, main = "prior_new - prior_old")
 # For Travis
 stopifnot(xbart_rmse < 1)
 stopifnot(time_XBART < 5)
-
-
-fhat.1 = apply(fit$yhats[, params$burnin:params$num_sweeps], 1, mean)
-sqrt(mean((fhat.1 - ftrue) ^ 2))
 
 
