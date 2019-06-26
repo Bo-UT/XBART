@@ -482,6 +482,10 @@ double normal_density(double y, double mean, double var, bool take_log){
     return output;
 }
 
+bool is_non_zero(size_t x){return (x > 0);}
+
+
+
 size_t count_non_zero(std::vector<double> &vec){
     size_t output = 0;
     for(size_t i = 0; i < vec.size(); i ++ ){
@@ -491,5 +495,3 @@ size_t count_non_zero(std::vector<double> &vec){
     }
     return output;
 }
-
-

@@ -19,6 +19,7 @@ struct FitInfo
 
     // Result containers
     xinfo predictions_std;
+    xinfo predictions_std_copy;
     std::vector<double> yhat_std;
     std::vector<double> residual_std;
     std::vector<double> residual_std_full;
@@ -36,7 +37,6 @@ struct FitInfo
 
     // mtry
     bool use_all = true;
-
 
     // fitinfo
     size_t n_min;
@@ -95,8 +95,7 @@ struct FitInfo
         }
         this->variable_ind = std::vector<size_t>(p_categorical + 1); // cummulated number of unique values in categorical variables
         this->X_num_unique = std::vector<size_t>(p_categorical);
-        unique_value_count2(Xpointer, Xorder_std, this->X_values, this->X_counts,
-                            this->variable_ind, this->total_points, this->X_num_unique, p_categorical, p_continuous);
+        unique_value_count2(Xpointer, Xorder_std, this->X_values, this->X_counts, this->variable_ind, this->total_points, this->X_num_unique, p_categorical, p_continuous);
 
         // // Init containers
         ini_xinfo(this->predictions_std, N, num_trees);
@@ -134,6 +133,8 @@ struct FitInfo
         this->num_trees = num_trees;
         this->num_sweeps = num_sweeps;
         this->sample_weights_flag = sample_weights_flag;
+
+        return;
     }
 };
 

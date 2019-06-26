@@ -1,22 +1,3 @@
-/*
- *  BART: Bayesian Additive Regression Trees
- *  Copyright (C) 2017 Robert McCulloch and Rodney Sparapani
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, a copy is available at
- *  https://www.R-project.org/Licenses/GPL-2
- */
-
 #ifndef GUARD_tree_h
 #define GUARD_tree_h
 
@@ -31,6 +12,8 @@
 #include "json.h"
 // for convenience
 using json = nlohmann::json;
+
+
 
 void unique_value_count(const double *Xpointer, xinfo_sizet &Xorder_std, std::vector<double> &X_values, std::vector<size_t> &X_counts, std::vector<size_t> &variable_ind, size_t &total_points, std::vector<size_t> &X_num_unique);
 
@@ -58,16 +41,10 @@ struct node_info
 class tree
 {
 public:
-
     // std::vector<double> theta_vector;
     std::vector<double> theta_vector;
 
-    // suff_Stat save nodewise sufficient statistics
-    // such as mean of y, sum of y squares
-    // hard code as a vector of length 2 for now
     std::vector<double> suff_stat;
-    size_t depth;
-
 
     //typedefs--------------------
     typedef tree *tree_p;
@@ -81,7 +58,7 @@ public:
     tree() : depth(0), suff_stat(2, 0.0), theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), tree_like(0.0), num_cutpoint_candidates(0) {}
     tree(const tree &n) : depth(0), suff_stat(2, 0.0), theta_vector(1, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), tree_like(0.0), num_cutpoint_candidates(0) { cp(this, &n); }
     tree(double itheta) : depth(0), suff_stat(2, 0.0), theta_vector(itheta, 0.0), sig(0.0), v(0), c(0), p(0), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), tree_like(0.0), num_cutpoint_candidates(0) {}
-    tree(size_t num_classes, const tree_p parent) : depth(parent->depth + 1), suff_stat(2, 0.0), theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p(parent), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), tree_like(0.0), num_cutpoint_candidates(0) {}
+    tree(size_t num_classes, const tree_p parent) : suff_stat(2, 0.0), theta_vector(num_classes, 0.0), sig(0.0), v(0), c(0), p(parent), l(0), r(0), prob_split(0.0), prob_leaf(0.0), drawn_ind(0), y_mean(0.0), N_Xorder(0), loglike_leaf(0.0), tree_like(0.0), num_cutpoint_candidates(0) {}
 
     void tonull(); //like a "clear", null tree has just one node
     ~tree() { tonull(); }
@@ -98,26 +75,29 @@ public:
     std::vector<double> gettheta_vector() const { return theta_vector; }
 
     double getsig() const { return sig; }
-    double getprob_split() const {return prob_split; }
-    double getprob_leaf() const {return prob_leaf; }
+    double getprob_split() const { return prob_split; }
+    double getprob_leaf() const { return prob_leaf; }
     size_t getv() const { return v; }
     double getc() const { return c; }
     size_t getdepth() const {return depth;}
 
-    size_t getN_Xorder() const {return N_Xorder;}
-    void setN_Xorder(size_t N_Xorder) {this->N_Xorder = N_Xorder;} 
+    size_t getN_Xorder() const { return N_Xorder; }
+    void setN_Xorder(size_t N_Xorder) { this->N_Xorder = N_Xorder; }
 
-    double gety_mean() const {return y_mean;} 
-    void sety_mean(double y_mean) {this->y_mean = y_mean;}
+    double gety_mean() const { return y_mean; }
+    void sety_mean(double y_mean) { this->y_mean = y_mean; }
 
+    double gettree_like() const { return tree_like; }
+    size_t getnum_cutpoint_candidates() const { return num_cutpoint_candidates; }
 
+    void setnum_cutpoint_candidates(size_t x) { this->num_cutpoint_candidates = x; }
     // size_t getsplit_var() const {return split_var; }
     // size_t getsplit_point() const {return split_point; }
     // bool getno_split() const {return no_split;}
 
     // void setno_split(bool no_split) {this->no_split = no_split; }
     // void setsplit_var(size_t split_var) {this->split_var = split_var;}
-    // void setsplit_point(size_t split_point) {this->split_point = split_point;} 
+    // void setsplit_point(size_t split_point) {this->split_point = split_point;}
 
     tree_p getp() { return p; }
     tree_p getl() { return l; }
@@ -163,15 +143,12 @@ public:
     double tree_likelihood(size_t N, double sigma, vector<double> y);
     // double tree_likelihood(std::vector<double> y, std::vector<double> pred, double sigma);
     // double tree_likelihood_cp(size_t N, double sigma, size_t tree_ind, Model *model, std::unique_ptr<FitInfo>& fit_info, const double *Xpointer, vector<double>& y, bool proposal);
-    
-    size_t getnum_cutpoint_candidates() const { return num_cutpoint_candidates; }
-
-    void setnum_cutpoint_candidates(size_t x) { this->num_cutpoint_candidates = x; }
 
     void update_split_prob(std::unique_ptr<FitInfo>& fit_info, double y_mean, size_t depth, size_t max_depth, double tau, double sigma, double alpha, double beta, bool draw_mu, bool parallel, xinfo_sizet &Xorder_std, std::vector<double> &mtry_weight_current_tree, std::vector<size_t> &X_counts, std::vector<size_t> &X_num_unique, Model *model, const size_t &tree_ind, bool sample_weights_flag);
 
     double transition_prob();
-    double log_like_tree(double sigma2, double tau);  
+
+    double log_like_tree(double sigma2, double tau);
 
     double prior_prob(Prior &prior);
     
@@ -188,15 +165,15 @@ public:
     char ntype();       //node type t:top, b:bot, n:no grandchildren i:interior (t can be b)
     bool isnog();
 
-    void copy_only_root(tree_p o);
     json to_json();
     void from_json(json &j3, size_t num_classes);
+    void cp(tree_p n, tree_cp o);  //copy tree
+    void copy_only_root(tree_p o); // copy tree, point new root to old structure
 
-// #ifndef NoRcpp
-// #endif
-  private:
-
-    // size_t depth;
+    // #ifndef NoRcpp
+    // #endif
+private:
+    size_t depth;
 
     double sig;
     //rule: left if x[v] < xinfo[v][c]
@@ -210,32 +187,34 @@ public:
 
     double prob_leaf; // posterior of the leaf parameter, mu
 
-    double loglike_leaf; // conditional likelihood of leaf
+    double loglike_leaf; // loglikelihood of the leaf data
 
     double tree_like; // for debug use, likelihood of the tree
 
     size_t drawn_ind; // index drawn when sampling cutpoints (in the total likelihood + nosplit vector)
 
     size_t N_Xorder; // number of data points in this node, for debugging use
-
-    double y_mean; // average of y in current node, for debugging use
+    double y_mean;   // average of y in current node, for debugging use
 
     size_t num_cutpoint_candidates; // number of cutpoint candidates
+
+    // size_t split_var;
+    // size_t split_point; // for debugging use
+    // bool no_split;
 
     //tree structure
     tree_p p; //parent
     tree_p l; //left child
     tree_p r; //right child
     //utiity functions
-    void cp(tree_p n, tree_cp o); //copy tree
 };
 
 std::istream &operator>>(std::istream &, tree &);
 std::ostream &operator<<(std::ostream &, const tree &);
 
-void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std::vector<double> &output,Model *model);
+void predict_from_tree(tree &tree, const double *X_std, size_t N, size_t p, std::vector<double> &output, Model *model);
 
-void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double>*> &data_pointers,Model *model);
+void predict_from_datapointers(const double *X_std, size_t N, size_t M, std::vector<double> &output, matrix<std::vector<double> *> &data_pointers, Model *model);
 
 void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_std, Model *model, tree &old_tree, tree &new_tree, size_t N, double sig, size_t tree_ind, Prior &prior, std::vector<double> &accept_vec, std::vector<double> &MH_ratio, std::vector<double> &proposal_ratio, std::vector<double> &likelihood_ratio, std::vector<double> &prior_ratio, std::vector<double> &tree_ratio);
 
