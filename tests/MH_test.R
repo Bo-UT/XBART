@@ -6,7 +6,7 @@ get_XBART_params <- function(n, d, y) {
                       n_min = 1,               # minimal node size
                       alpha = 0.95,           # BART prior parameter 
                       beta = 2,            # BART prior parameter
-                      mtry = 20,               # number of variables sampled in each split
+                      mtry = 10,               # number of variables sampled in each split
                       burnin = 20,
                       no_split_penality = 2 #"Auto"
                       )            # burnin of MCMC sample
