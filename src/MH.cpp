@@ -198,16 +198,16 @@ void determinant_precision(tree &root, double t, double s2, std::unique_ptr<Stat
         for (size_t j = 0; j <= i; j++)
         {
             M(i, j) = w_overlap(all_nodes[i], all_nodes[j]) * t / (sqrt(s2 + t * all_nodes[i]->getN()) * sqrt(s2 + t * all_nodes[j]->getN()));
-
             // fill the other side of M matrix
             M(j, i) = M(i, j);
         }
+        M(i, i) -= w_overlap(all_nodes[i], all_nodes[i]) / s2;
     }
 
     // adjust detA with constant
     logdetA = logdetA - state->n_y * log(s2);
 
-    arma::log_det(val, sign, arma::eye<arma::mat>(tree_size, tree_size) - M);
+    arma::log_det(val, sign, - M);
 
     return;
 }

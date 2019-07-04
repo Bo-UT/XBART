@@ -60,7 +60,7 @@ public:
     
     State(const double *Xpointer, matrix<size_t> &Xorder_std, size_t N, size_t p, size_t num_trees, size_t p_categorical, size_t p_continuous, bool set_random_seed, size_t random_seed, size_t n_min, size_t n_cutpoints, bool parallel, size_t mtry, const double *X_std, size_t num_sweeps, bool sample_weights_flag, std::vector<double> *y_std, double sigma, size_t max_depth, double ini_var_yhat, size_t burnin, size_t dim_residual)
     {
-
+ 
         // Init containers
         // initialize predictions_std at given value / number of trees
         // ini_xinfo(this->predictions_std, N, num_trees, ini_var_yhat / (double)num_trees);

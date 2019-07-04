@@ -591,13 +591,13 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                 // cout << " ----- " << endl;
 
                 // cout << logdetA_old << "  " << logdetA_new << endl;
-                MH_ratio = P_new + Q_old - P_old - Q_new + logdetA_old - logdetA_new + val_old  - val_new;
+                MH_ratio = P_new + Q_old - P_old - Q_new + logdetA_old - logdetA_new + val_old - val_new;
 
 
-                // cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
+                cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
 
 
-                cout << MH_ratio << endl;
+                // cout << "MH_ratio" << MH_ratio << endl;
 
                 if (MH_ratio > 0)
                 {
@@ -608,11 +608,11 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                     MH_ratio = exp(MH_ratio) * sign_old / sign_new;
                 }
 
-                MH_vector.push_back(MH_ratio);
+                MH_vector.push_back(exp(MH_ratio));
 
-                Q_ratio.push_back(Q_old - Q_new);
+                Q_ratio.push_back(exp(Q_old - Q_new));
 
-                P_ratio.push_back(P_new - P_old);
+                P_ratio.push_back(exp(P_new - P_old));
 
                 if (unif_dist(state->gen) <= MH_ratio)
                 {

@@ -792,6 +792,12 @@ Rcpp::List XBART_MH(arma::mat y, arma::mat X, arma::mat Xtest, size_t num_trees,
     x_struct.reset();
 
     return Rcpp::List::create(
+        Rcpp::Named("importance") = split_count_sum,
+        Rcpp::Named("accept_count") = accept_count,
+        Rcpp::Named("MH") = MH_vector,
+        Rcpp::Named("Q_ratio") = Q_ratio,
+        Rcpp::Named("P_ratio") = P_ratio,
+        Rcpp::Named("prior_ratio") = prior_ratio,
         Rcpp::Named("yhats") = yhats,
         Rcpp::Named("yhats_test") = yhats_test,
         Rcpp::Named("sigma") = sigma_draw,
