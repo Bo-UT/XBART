@@ -380,6 +380,37 @@ void tree::copy_only_root(tree_p o)
     }
 }
 
+void tree::print_node(size_t space)  
+{  
+    // Base case  
+    if (this->getl() == 0){ 
+        for (size_t i = 0; i < space - 5; i++) {    cout<<" "; }
+        for (size_t i = space-5; i < space; i++){ cout << "_"; }
+        cout << this->getN() << endl;
+        return;  
+    }
+        
+  
+    // Increase distance between levels  
+    
+    // Process right child first  
+    this->r->print_node(space + 5);  
+  
+    // Print current node after space  
+    // count  
+    for (size_t i = 0; i < space - 5; i++){cout << " "; }
+    cout << "|" << endl;
+    for (size_t i = 0; i < space - 5; i++){cout << " "; }
+    for (int i = space-5; i < space; i++) {cout << "_"; } 
+    cout<< this->getv() << " : " << this->getc() << endl;  
+    for (size_t i = 0; i < space - 5; i++){cout << " "; }
+    cout << "|" << endl;
+  
+    // Process left child  
+
+    this->l->print_node(space + 5);  
+}  
+
 json tree::to_json()
 {
     json j;
@@ -614,7 +645,7 @@ void tree::grow_from_root(std::unique_ptr<State> &state, matrix<size_t> &Xorder_
 
         // update leaf prob, for MH update useage
         // this->loglike_node = model->likelihood_no_split(this->suff_stat, state);
-
+        // this->prob_leaf = normal_density(this->theta_vector[0], this->suff_stat[0] / state->sigma2 / (1.0 / model->tau + this->suff_stat[2] / state->sigma2), 1.0 / (1.0 / model->tau + this->suff_stat[2] / state->sigma2), true);
         return;
     }
 

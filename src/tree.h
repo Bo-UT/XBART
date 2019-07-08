@@ -172,6 +172,11 @@ public:
 
     void copy_only_root(tree_p o); // copy tree, point new root to old structure
 
+    void print_node(size_t space);
+
+    // void print_root(tree_p root);
+
+
     //friends--------------------
     friend std::istream &operator>>(std::istream &, tree &);
 

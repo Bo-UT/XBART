@@ -5,4 +5,4 @@ R CMD REMOVE XBART
 R CMD INSTALL XBART
 cd XBART/tests/
 echo Testing R
-Rscript MH_test.R
+Rscript simple_tree.R

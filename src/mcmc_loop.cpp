@@ -497,7 +497,7 @@ void mcmc_loop_probit(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &
 
 void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhats_xinfo, matrix<double> &sigma_draw_xinfo, vector<vector<tree>> &trees, double no_split_penality, std::unique_ptr<State> &state, NormalModel *model, std::unique_ptr<X_struct> &x_struct, std::vector<double> &accept_count, std::vector<double> &MH_vector, std::vector<double> &P_ratio, std::vector<double> &Q_ratio, std::vector<double> &prior_ratio)
 {
-
+    COUT << "burnin " << state->burnin << endl;
     if (state->parallel)
         thread_pool.start();
 
@@ -555,7 +555,7 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                 state->mtry_weight_current_tree = state->mtry_weight_current_tree - state->split_count_all_tree[tree_ind];
             }
 
-            if (sweeps < 10)
+            if (sweeps < state->burnin)
             {
                 model->initialize_root_suffstat(state, trees[sweeps][tree_ind].suff_stat);
 
@@ -594,8 +594,12 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                 MH_ratio = P_new + Q_old - P_old - Q_new + logdetA_old - logdetA_new + val_old - val_new;
 
 
-                cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
+                // cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
 
+                cout << "New tree" << endl;
+                trees[sweeps][tree_ind].print_node(0);
+                cout << "Old tree" << endl;
+                trees[sweeps-1][tree_ind].print_node(0);
 
                 // cout << "MH_ratio" << MH_ratio << endl;
 
@@ -608,11 +612,11 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                     MH_ratio = exp(MH_ratio) * sign_old / sign_new;
                 }
 
-                MH_vector.push_back(exp(MH_ratio));
+                MH_vector.push_back(MH_ratio);
 
-                Q_ratio.push_back(exp(Q_old - Q_new));
+                Q_ratio.push_back(Q_old - Q_new);
 
-                P_ratio.push_back(exp(P_new - P_old));
+                P_ratio.push_back(P_new - P_old);
 
                 if (unif_dist(state->gen) <= MH_ratio)
                 {
@@ -660,9 +664,23 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
             {
                 state->update_split_counts(tree_ind);
             }
+            
 
             // update partial residual for the next tree to fit
             model->state_sweep(tree_ind, state->num_trees, state->residual_std, x_struct);
+        }
+        // copy data_pointers after each sweep
+        x_struct->data_pointers_copy = x_struct->data_pointers;
+
+        if (sweeps >= state->burnin){
+
+        
+        double average = accumulate(accept_count.end() - state->num_trees, accept_count.end(), 0.0) / state->num_trees;
+        double MH_average = accumulate(MH_vector.end() - state->num_trees, MH_vector.end(), 0.0) / state->num_trees;
+        // cout << "size of MH " << accept_count.size() << "  " << MH_vector.size() << endl;
+
+        COUT << "percentage of proposal acceptance " << average << endl;
+        COUT << "average MH ratio " << MH_average << endl;
         }
     }
     thread_pool.stop();
