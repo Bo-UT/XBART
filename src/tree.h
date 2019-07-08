@@ -109,7 +109,7 @@ public:
     size_t treesize();         //number of nodes in tree
     size_t nnogs();            //number of nog nodes (no grandchildren nodes)
     size_t nbots();            //number of bottom nodes
-
+    void print_node(size_t space);
     void getbots(npv &bv);        //get bottom nodes
     void getnogs(npv &nv);        //get nog nodes (no granchildren)
     void getnodes(npv &v);        //get vector of all nodes

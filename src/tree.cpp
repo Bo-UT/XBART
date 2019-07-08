@@ -368,6 +368,41 @@ void tree::cp(tree_p n, tree_cp o)
     }
 }
 
+void tree::print_node(size_t space)  
+{  
+    size_t temp_space = 2;
+    if (this->getp() == 0 && space < temp_space){space = temp_space;}
+    
+    // Base case  
+    if (this->getl() == 0){ 
+        for (size_t i = 0; i < space - temp_space; i++) { cout<<" "; }
+        for (size_t i = space-temp_space; i < space; i++){ cout << "_"; }
+        cout << this->getN_Xorder() << endl;
+        // cout << " loglike " << this->getloglike_node() << endl; 
+        return;  
+    }
+  
+    // Increase distance between levels  
+    
+    // Process right child first  
+    this->r->print_node(space + temp_space);  
+  
+    // Print current node after space  
+    // count  
+    // for (size_t i = 0; i  < space; i++){cout << " "; }
+    // cout << "|" << endl;
+    for (size_t i = 0; i < space - temp_space; i++){cout << " "; }
+    for (int i = space-temp_space; i < space; i++) {cout << "_"; } 
+    cout<< this->getv() << " : " << this->getc() << endl;
+    // cout << " loglike " << this->getloglike_node() << endl; 
+    // for (size_t i = 0; i < space; i++){cout << " "; }
+    // cout << "|" << endl;
+  
+    // Process left child  
+
+    this->l->print_node(space + temp_space);  
+}  
+
 void tree::copy_only_root(tree_p o)
 //assume n has no children (so we don't have to kill them)
 //NOT LIKE cp() function
@@ -2030,7 +2065,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
     // COUT << "old total residual " <<  std::accumulate(resid_old.begin(), resid_old.end(), 0.0) << endl;
     // COUT << "new total residual " <<  std::accumulate(resid_new.begin(), resid_new.end(), 0.0) << endl;
 
-         
+
 
     proposal_old = old_tree.transition_prob();
     // likelihood_old = old_tree.tree_likelihood(resid, y_hat_old, sig);
@@ -2048,9 +2083,17 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
     // COUT << "likelihood ratio " << exp(likelihood_new - likelihood_old) << endl;
     // COUT << "prior ratio " << exp(prior_new - prior_old) << endl;
 
+    
+
 
     // double accept_prob = exp(proposal_old + likelihood_new + prior_new - proposal_new - likelihood_old - prior_old);
     double accept_prob = exp(proposal_old + likelihood_new  - proposal_new - likelihood_old);
+
+    cout << "new tree " << endl;
+    new_tree.print_node(0);
+    cout << likelihood_new - likelihood_old << "  " <<  proposal_old - proposal_new << "  " << accept_prob << endl;
+    cout << "old tree " << endl;
+    old_tree.print_node(0);
 
     // COUT << "accept_prob " << accept_prob << endl;
 
@@ -2073,6 +2116,7 @@ void metropolis_adjustment(std::unique_ptr<FitInfo>& fit_info, const double *X_s
 
     if (!accept)
     {    
+        cout << "reject" << endl;
         accept_vec.push_back(0.0);
         fit_info->data_pointers[tree_ind] = fit_info->data_pointers_cp[tree_ind];
         fit_info->split_count_current_tree = fit_info->split_count_all_tree[tree_ind];

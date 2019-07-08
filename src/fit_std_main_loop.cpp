@@ -103,18 +103,18 @@ void fit_std(std::vector<double> &y_std, double y_mean, xinfo_sizet &Xorder_std,
             COUT << "average MH ratio " << accumulate(MH_vector.end() - fit_info->num_trees, MH_vector.end(), 0.0) / fit_info->num_trees << endl;
             COUT << "average acceptance " << accumulate(accept_count.end() - fit_info->num_trees, accept_count.end(), 0.0) / fit_info->num_trees << endl;
             
-            std::vector<double> accept_tree;
-            std::vector<double> reject_tree;
-            for (size_t i = accept_count.size() - fit_info->num_trees; i < accept_count.size(); i++){
-                if (accept_count[i] == 1.0){
-                    accept_tree.push_back(tree_ratio[i]);
-                }
-                else{
-                    reject_tree.push_back(tree_ratio[i]);
-                }
-            }
-            COUT << "accepted tree ratio " << accumulate(accept_tree.begin(), accept_tree.end(), 0.0) / accept_tree.size()<< endl;
-            COUT << "rejected tree ratio " << accumulate(reject_tree.begin(), reject_tree.end(), 0.0) / reject_tree.size() << endl;
+            // std::vector<double> accept_tree;
+            // std::vector<double> reject_tree;
+            // for (size_t i = accept_count.size() - fit_info->num_trees; i < accept_count.size(); i++){
+            //     if (accept_count[i] == 1.0){
+            //         accept_tree.push_back(tree_ratio[i]);
+            //     }
+            //     else{
+            //         reject_tree.push_back(tree_ratio[i]);
+            //     }
+            // }
+            // COUT << "accepted tree ratio " << accumulate(accept_tree.begin(), accept_tree.end(), 0.0) / accept_tree.size()<< endl;
+            // COUT << "rejected tree ratio " << accumulate(reject_tree.begin(), reject_tree.end(), 0.0) / reject_tree.size() << endl;
             
         }
 
@@ -272,7 +272,7 @@ void fit_std_clt(std::vector<double> &y_std, double y_mean, xinfo_sizet &Xorder_
 
             fit_info->yhat_std = fit_info->yhat_std + fit_info->predictions_std[tree_ind];
 
-            std::cout << "stuff stat" << model->suff_stat_total << std::endl;
+            // std::cout << "stuff stat" << model->suff_stat_total << std::endl;
         }
         // save predictions to output matrix
         yhats_xinfo[sweeps] = fit_info->yhat_std;
