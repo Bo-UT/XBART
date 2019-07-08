@@ -83,9 +83,9 @@ double transition_prob(tree &tree)
     for (size_t i = 0; i < tree_vec.size(); i++)
     {
         output += tree_vec[i]->getloglike_node();
-        if (tree_vec[i]->getl()==0){
-            output += tree_vec[i]->getprob_leaf();
-        }
+        // if (tree_vec[i]->getl()==0){
+        //     output += tree_vec[i]->getprob_leaf();
+        // }
     }
 
 

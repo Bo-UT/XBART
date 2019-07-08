@@ -390,6 +390,7 @@ void tree::print_node(size_t space)
         for (size_t i = 0; i < space - temp_space; i++) { cout<<" "; }
         for (size_t i = space-temp_space; i < space; i++){ cout << "_"; }
         cout << this->getN() << endl;
+        // cout << " loglike " << this->getloglike_node() << endl; 
         return;  
     }
         
@@ -405,7 +406,8 @@ void tree::print_node(size_t space)
     // cout << "|" << endl;
     for (size_t i = 0; i < space - temp_space; i++){cout << " "; }
     for (int i = space-temp_space; i < space; i++) {cout << "_"; } 
-    cout<< this->getv() << " : " << this->getc() << endl;  
+    cout<< this->getv() << " : " << this->getc() << endl;
+    // cout << " loglike " << this->getloglike_node() << endl; 
     // for (size_t i = 0; i < space; i++){cout << " "; }
     // cout << "|" << endl;
   

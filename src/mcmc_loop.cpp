@@ -596,10 +596,11 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                 MH_ratio = P_new + Q_old - P_old - Q_new + logdetA_old - logdetA_new + val_old - val_new;
 
 
-                // cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
-
                 cout << "New tree" << endl;
                 trees[sweeps][tree_ind].print_node(2);
+
+                cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
+
                 cout << "Old tree" << endl;
                 trees[sweeps-1][tree_ind].print_node(2);
 
