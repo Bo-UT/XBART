@@ -74,7 +74,7 @@ if (new_data) {
     #rowSums(x[,1:30]^2)
     #pmax(x[,1]*x[,2], abs(x[,3])*(x[,10]>x[,15])+abs(x[,4])*(x[,10]<=x[,15]))
     #
-    x[,1] * x[,2]
+    abs(x[,1]) * x[,2] - abs(x[,1]) * (1-x[,2])
   }
   
   # to test if ties cause a crash in continuous variables

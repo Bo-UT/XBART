@@ -2,7 +2,7 @@
 #define GUARD_utility_h
 
 #include "common.h"
-#include "tree.h"
+// #include "tree.h"
 #include "thread_pool.h"
 extern ThreadPool thread_pool;
 

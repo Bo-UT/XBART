@@ -498,6 +498,8 @@ void mcmc_loop_probit(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &
 void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhats_xinfo, matrix<double> &sigma_draw_xinfo, vector<vector<tree>> &trees, double no_split_penality, std::unique_ptr<State> &state, NormalModel *model, std::unique_ptr<X_struct> &x_struct, std::vector<double> &accept_count, std::vector<double> &MH_vector, std::vector<double> &P_ratio, std::vector<double> &Q_ratio, std::vector<double> &prior_ratio)
 {
     COUT << "burnin " << state->burnin << endl;
+    cout << "total sweeps " << state->num_sweeps << endl;
+    cout << "total trees " << state->num_trees <<endl;
     if (state->parallel)
         thread_pool.start();
 
@@ -597,9 +599,9 @@ void mcmc_loop_MH(matrix<size_t> &Xorder_std, bool verbose, matrix<double> &yhat
                 // cout << P_new - P_old << "   " << logdetA_old - logdetA_new << "   " << Q_old - Q_new << "   " << val_old - val_new << "   " << MH_ratio << endl;
 
                 cout << "New tree" << endl;
-                trees[sweeps][tree_ind].print_node(0);
+                trees[sweeps][tree_ind].print_node(2);
                 cout << "Old tree" << endl;
-                trees[sweeps-1][tree_ind].print_node(0);
+                trees[sweeps-1][tree_ind].print_node(2);
 
                 // cout << "MH_ratio" << MH_ratio << endl;
 

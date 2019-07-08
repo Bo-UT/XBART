@@ -382,10 +382,13 @@ void tree::copy_only_root(tree_p o)
 
 void tree::print_node(size_t space)  
 {  
+    size_t temp_space = 2;
+    if (this->getp() == 0 && space < temp_space){space = temp_space;}
+    
     // Base case  
     if (this->getl() == 0){ 
-        for (size_t i = 0; i < space - 5; i++) {    cout<<" "; }
-        for (size_t i = space-5; i < space; i++){ cout << "_"; }
+        for (size_t i = 0; i < space - temp_space; i++) { cout<<" "; }
+        for (size_t i = space-temp_space; i < space; i++){ cout << "_"; }
         cout << this->getN() << endl;
         return;  
     }
@@ -394,21 +397,21 @@ void tree::print_node(size_t space)
     // Increase distance between levels  
     
     // Process right child first  
-    this->r->print_node(space + 5);  
+    this->r->print_node(space + temp_space);  
   
     // Print current node after space  
     // count  
-    for (size_t i = 0; i < space - 5; i++){cout << " "; }
-    cout << "|" << endl;
-    for (size_t i = 0; i < space - 5; i++){cout << " "; }
-    for (int i = space-5; i < space; i++) {cout << "_"; } 
+    // for (size_t i = 0; i  < space; i++){cout << " "; }
+    // cout << "|" << endl;
+    for (size_t i = 0; i < space - temp_space; i++){cout << " "; }
+    for (int i = space-temp_space; i < space; i++) {cout << "_"; } 
     cout<< this->getv() << " : " << this->getc() << endl;  
-    for (size_t i = 0; i < space - 5; i++){cout << " "; }
-    cout << "|" << endl;
+    // for (size_t i = 0; i < space; i++){cout << " "; }
+    // cout << "|" << endl;
   
     // Process left child  
 
-    this->l->print_node(space + 5);  
+    this->l->print_node(space + temp_space);  
 }  
 
 json tree::to_json()
