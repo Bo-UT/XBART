@@ -308,9 +308,9 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     tree.getbots(bv);
     size_t B = bv.size();
     // std::cout << "tree " << tree_ind << ": number of leaves: " << B << endl;
-    double ret1 = 0;
+    // double ret1 = 0;
     // double ret2 = B * (dim_residual * concn * log(concn) - (dim_residual - 1) * lgamma(concn) - log(dim_residual));
-    double ret2 = B * (dim_residual * concn * log(concn) - (dim_residual - 1) * lgamma(concn) - log(dim_residual));
+    // double ret2 = B * (dim_residual * concn * log(concn) - (dim_residual - 1) * lgamma(concn) - log(dim_residual));
     std::vector<double> ret3(K, 0.0);
     std::vector<double> temp(dim_residual, 0.0);
     double temp_max = -INFINITY;
@@ -319,10 +319,10 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     for(size_t b = 0; b < B; b++)
     {
         theta_vector = bv[b]->gettheta_vector();
-        for(size_t j = 0; j < dim_residual; j++)
-        {
-            ret1 += (concn - 1) * log(theta_vector[j]) - concn * theta_vector[j];
-        }
+        // for(size_t j = 0; j < dim_residual; j++)
+        // {
+        //     ret1 += (concn - 1) * log(theta_vector[j]) - concn * theta_vector[j];
+        // }
 
         for(size_t i = 0; i< K; i++)
         {
@@ -344,8 +344,8 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     for(size_t i = 0; i < K; i++)
     {
-        // cout << "i = " << i << " ret3 = " << ret3[i] << endl;
-        delta_loglike[tree_ind][i] = ret1 + ret2 + ret3[i] + B * concn * (delta_cand[i] - 1) * log(concn);
+        delta_loglike[tree_ind][i] = ret3[i] + B * concn * (delta_cand[i] - 1) * log(concn);
+        // delta_loglike[tree_ind][i] = ret1 + ret2 + ret3[i] + B * concn * (delta_cand[i] - 1) * log(concn);
         // cout << "delta = " << delta_cand[i] << " likelihood " << delta_loglike[tree_ind][i] << endl;
         if((bool)std::fetestexcept(FE_OVERFLOW)) 
         {
