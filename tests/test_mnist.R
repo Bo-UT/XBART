@@ -10,12 +10,12 @@ tau_later = 100 / num_trees
 
 # delta = seq(0.1, 2, 0.02)
 # concn = 1
-
+# Nmin = 1
 
 t = proc.time()
 fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=10, 
-                        Nmin=5, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
+                        Nmin=Nmin, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
                         no_split_penality = 1, burnin = burnin, mtry = 10, p_categorical = 0L, 
                         kap = 1, s = 1, verbose = TRUE, parallel = FALSE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE, 
