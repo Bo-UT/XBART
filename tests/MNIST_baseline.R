@@ -19,7 +19,6 @@ X[,(h*k):(h*k+k-1)+1] = S$u[,1:k]
  }
 
 
- library(XBART)
  XXinv = solve(t(X)%*%X)
  P = XXinv%*%t(X)
  X_train = t(P%*%t(D))
@@ -41,9 +40,6 @@ X_test[,h] = cut(X_test[,h],breaks = breaks,include.lowest=TRUE,labels=FALSE)
 }
 X_train = X_train[1:1000,]
 y = y[1:1000]
-
-
-load("data.rda")
 
 
 t = proc.time()
