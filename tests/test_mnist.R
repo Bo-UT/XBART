@@ -1,20 +1,25 @@
 library(XBART)
-# num_trees = 50
-# num_sweeps = 40
-# burnin = 15
-#pred = matrix(0,10000,10)
 
 
 tau = 100 / num_trees
 tau_later = 100 / num_trees
 
-# delta = seq(0.1, 2, 0.02)
-# concn = 1
-# Nmin = 1
+if (get_param = TRUE){
+  num_trees = 50
+  num_sweeps = 40
+  burnin = 15
+  pred = matrix(0,10000,10)
+  
+  delta = seq(0.1, 2, 0.02)
+  concn = 1
+  Nmin = 1
+  max_depth = 50
+}
+
 
 t = proc.time()
 fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
-                        num_trees=num_trees, num_sweeps=num_sweeps, max_depth=10, 
+                        num_trees=num_trees, num_sweeps=num_sweeps, max_depth=max_depth, 
                         Nmin=Nmin, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
                         no_split_penality = 1, burnin = burnin, mtry = 10, p_categorical = 0L, 
                         kap = 1, s = 1, verbose = TRUE, parallel = FALSE, set_random_seed = TRUE, 

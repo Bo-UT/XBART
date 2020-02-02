@@ -51,7 +51,7 @@ y_test = sapply(1:nt,function(j) sample(0:(k-1),1,prob=pr[j,]))
 
 
 
-num_sweeps = 30
+num_sweeps = 50
 burnin = 15
 
 if(0){
@@ -62,7 +62,7 @@ X_test = X_train
 
 }
 num_trees = 30
-delta = seq(0.1, 2, 0.1)
+delta = c(seq(0.1, 2, 0.1), seq(2, 8, 0.1))
 concn = 1
 tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=3, X=X_train, Xtest=X_test, 
