@@ -28,7 +28,7 @@ fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test,
                         delta = delta, concn = concn)
 t = proc.time() - t
 
-pred = apply(fit$yhats_test[(burnin+1):(num_sweeps-0),,], c(2,3), s)
+pred = apply(fit$yhats_test[(burnin+1):(num_sweeps-0),,], c(2,3), mean)
 yhat = max.col(pred)-1
 
 spr <- split(pred, row(pred))
