@@ -67,6 +67,11 @@ cat("xgboost error rate ", mean(pred.xgb != ytest), "\n")
 cat(paste("xgboost logloss : ", round(logloss.xgb,3)),"\n")
 
 
+for(i in 0:9){
+   cat("xgboost error rate in ", i, ": ", round(mean(pred.xgb[ytest==i]!=i), 4), 
+       " misclassified as ", tail(names(sort(table(pred.xgb[ytest==i]))), 2)[1], "\n " )
+}
+
 
 
 

@@ -13,15 +13,16 @@ if (get_param == TRUE){
   delta = seq(0.1, 2, 0.02)
   concn = 1
   Nmin = 1
-  max_depth = 50
-  mtry = 20
+  max_depth = 10
+  mtry = 10
+  num_cutpoints = 100
 }
 
 
 t = proc.time()
 fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=max_depth, 
-                        Nmin=Nmin, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
+                        Nmin=Nmin, num_cutpoints=num_cutpoints, alpha=0.95, beta=1.25, tau=50/num_trees, 
                         no_split_penality = 1, burnin = burnin, mtry = mtry, p_categorical = 0L, 
                         kap = 1, s = 1, verbose = TRUE, parallel = FALSE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE, 
@@ -45,6 +46,10 @@ table(fit$delta)
 
 mean(fit$delta)
 
+for(i in 0:9){
+  cat("XBART error rate in ", i, ": ", round(mean(yhat[ytest==i]!=i), 4), 
+      " misclassified as ", tail(names(sort(table(yhat[ytest==i]))), 2)[1], "\n " )
+}
 
 
 
