@@ -4,7 +4,7 @@ library(XBART)
 tau = 100 / num_trees
 tau_later = 100 / num_trees
 
-if (get_param = TRUE){
+if (get_param == TRUE){
   num_trees = 50
   num_sweeps = 40
   burnin = 15
