@@ -27,7 +27,7 @@ X[,(h*k):(h*k+k-1)+1] = S$u[,1:k]
 
 #load("mnist_data.rda")
 
-X_train = X_train + 0.0001*rnorm(ncol(X_train)*nrow(X_train))
+# X_train = X_train + 0.0001*rnorm(ncol(X_train)*nrow(X_train))
 # X_test = X_test + 0.0001*rnorm(ncol(X_test)*nrow(X_test))
 
 # for (h in 1:p){
