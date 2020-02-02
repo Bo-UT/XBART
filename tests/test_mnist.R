@@ -14,6 +14,7 @@ if (get_param == TRUE){
   concn = 1
   Nmin = 1
   max_depth = 50
+  mtry = 20
 }
 
 
@@ -21,13 +22,13 @@ t = proc.time()
 fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=max_depth, 
                         Nmin=Nmin, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
-                        no_split_penality = 1, burnin = burnin, mtry = 10, p_categorical = 0L, 
+                        no_split_penality = 1, burnin = burnin, mtry = mtry, p_categorical = 0L, 
                         kap = 1, s = 1, verbose = TRUE, parallel = FALSE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE, 
                         delta = delta, concn = concn)
 t = proc.time() - t
 
-pred = apply(fit$yhats_test[(burnin+1):(num_sweeps-0),,], c(2,3), mean)
+pred = apply(fit$yhats_test[(burnin+1):(num_sweeps-0),,], c(2,3), s)
 yhat = max.col(pred)-1
 
 spr <- split(pred, row(pred))
