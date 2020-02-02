@@ -25,20 +25,26 @@ set.seed(seed)
 n = 10000
 nt = 1000
 p = 20
-k = 3
+k = 6
 lam = matrix(0,n,k)
 lamt = matrix(0,nt,k)
-# different mean for different columns
+
 X_train = matrix(runif(n*p,-1,1), nrow=n)
 X_test = matrix(runif(nt*p,-1,1), nrow=nt)
-# X_train = abs(X_train)
-# X_test = abs(X_test)
-lam[,1] = 2*abs(2*X_train[,1] - X_train[,2])
+
+
+lam[,1] = abs(2*X_train[,1] - X_train[,2])
 lam[,2] = 1
 lam[,3] = 3*X_train[,3]^2
-lamt[,1] = 2*abs(2*X_test[,1] - X_test[,2])
+lam[,4] = 5*(X_train[, 4] * X_train[,5])
+lam[,5] = 2*(X_train[,5] + 2*X_train[,6])
+lam[,6] = 2*(X_train[,1] + X_train[,3] - X_train[,5])
+lamt[,1] = abs(2*X_test[,1] - X_test[,2])
 lamt[,2] = 1
 lamt[,3] = 3*X_test[,3]^2
+lamt[,4] = 5*(X_test[,4]*X_test[,5])
+lamt[,5] = 2*(X_test[,5] + 2*X_test[,6])
+lamt[,6] = 2*(X_test[,1] + X_test[,3] - X_test[,5])
 pr = exp(10*lam)
 # pr = lam
 pr = t(scale(t(pr),center=FALSE, scale = rowSums(pr)))
@@ -65,7 +71,7 @@ num_trees = 30
 delta = c(seq(0.1, 2, 0.1), seq(2, 8, 0.1))
 concn = 1
 tm = proc.time()
-fit = XBART.multinomial(y=matrix(y_train), num_class=3, X=X_train, Xtest=X_test, 
+fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
             num_trees=num_trees, num_sweeps=num_sweeps, max_depth=250, 
             Nmin=10, num_cutpoints=100, alpha=0.95, beta=1.25, tau=50/num_trees, 
             no_split_penality = 1, burnin = burnin, mtry = 3, p_categorical = 0L, 
@@ -98,7 +104,7 @@ pred = apply(a,1,which.max)-1
 
 tm = proc.time()
 fit.xgb <- xgboost(data = X_train, label=y_train,
-                          num_class=3,
+                          num_class=k,
                           verbose = 0,
                           max_depth = 4,
                           subsample = 0.80,
