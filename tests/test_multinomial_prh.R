@@ -22,7 +22,7 @@ seed = 10
 set.seed(seed)
 
 
-n = 10000
+n = 5000
 nt = 1000
 p = 20
 k = 6
@@ -67,8 +67,8 @@ X_test = X_train
 }else{
 
 }
-num_trees = 30
-delta = c(seq(0.1, 2, 0.1), seq(2, 8, 0.1))
+num_trees = 100
+delta = 1:10 #seq(0.1, 2, 0.05)
 concn = 1
 tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
@@ -102,7 +102,7 @@ pred = apply(a,1,which.max)-1
 # cat(paste("ranger runtime: ", round(tm["elapsed"],3)," seconds","\n"))
 
 
-tm = proc.time()
+tm2 = proc.time()
 fit.xgb <- xgboost(data = X_train, label=y_train,
                           num_class=k,
                           verbose = 0,
@@ -113,7 +113,7 @@ fit.xgb <- xgboost(data = X_train, label=y_train,
                           eta = 0.1,
                           params=list(objective="multi:softprob"))
 
-tm = proc.time()-tm
+tm2 = proc.time()-tm2
 cat(paste("xgboost runtime: ", round(tm["elapsed"],3)," seconds"),"\n")
 phat.xgb <- predict(fit.xgb, X_test)
 phat.xgb <- matrix(phat.xgb, ncol=k, byrow=TRUE)
@@ -125,10 +125,10 @@ cat(paste("xbart rmse on probabilities: ", round(sqrt(mean((a-pr)^2)),3)),"\n")
 # cat(paste("ranger rmse on probabilities: ", round(sqrt(mean((pred3-pr)^2)),3)),"\n")
 cat(paste("xgboost rmse on probabilities: ", round(sqrt(mean((phat.xgb-pr)^2)),3)),"\n")
 
-par(mfrow=c(1,3))
-plot(a[,1],pr[,1],pch=20,cex=0.75)
-plot(a[,2],pr[,2],pch=20,cex=0.75)
-plot(a[,3],pr[,3],pch=20,cex=0.75)
+# par(mfrow=c(1,3))
+# plot(a[,1],pr[,1],pch=20,cex=0.75)
+# plot(a[,2],pr[,2],pch=20,cex=0.75)
+# plot(a[,3],pr[,3],pch=20,cex=0.75)
 
 yhat = apply(a,1,which.max)-1
 cat(paste("xbart classification accuracy: ",round(mean(y_test == yhat),3)),"\n")
@@ -143,3 +143,13 @@ cat(paste("xbart logloss : ",round(logloss,3)),"\n")
 cat(paste("xgboost logloss : ", round(logloss.xgb,3)),"\n")
 
 table(fit$delta)
+
+cat(paste("\n", "xbart runtime: ", round(tm["elapsed"],3)," seconds"),"\n")
+
+cat('average delta', mean(fit$delta), "\n")
+
+cat('average tree size', mean(fit$tree_size), "\n")
+
+cat('average time on each leaf ', tm[3] / sum(fit$tree_size), "\n")
+
+

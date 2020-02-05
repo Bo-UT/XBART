@@ -307,45 +307,40 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     std::vector<double> theta_vector;
     tree.getbots(bv);
     size_t B = bv.size();
-    // std::cout << "tree " << tree_ind << ": number of leaves: " << B << endl;
-    // double ret1 = 0;
-    // double ret2 = B * (dim_residual * concn * log(concn) - (dim_residual - 1) * lgamma(concn) - log(dim_residual));
-    // double ret2 = B * (dim_residual * concn * log(concn) - (dim_residual - 1) * lgamma(concn) - log(dim_residual));
-    std::vector<double> ret3(K, 0.0);
+
+    std::vector<double> ret(K, 0.0);
     std::vector<double> temp(dim_residual, 0.0);
-    double temp_max = -INFINITY;
+    double temp_max;
     double temp_sum = 0.0;
     
     for(size_t b = 0; b < B; b++)
     {
         theta_vector = bv[b]->gettheta_vector();
-        // for(size_t j = 0; j < dim_residual; j++)
-        // {
-        //     ret1 += (concn - 1) * log(theta_vector[j]) - concn * theta_vector[j];
-        // }
-
+        temp_max = *max_element(theta_vector.begin(), theta_vector.end());
+        // cout << "temp_max " << temp_max << endl; 
         for(size_t i = 0; i< K; i++)
         {
-            // temp_max = pow(theta_vector[0], concn * (delta_cand[i] - 1));
             for(size_t j = 0; j < dim_residual; j++)
             {
-                temp[j] = exp(concn * (delta_cand[i]-1) * log(theta_vector[j]) - lgamma(concn * delta_cand[i]));
+                temp[j] = exp(concn * (delta_cand[i]-1) * log(theta_vector[j] / temp_max) );
+                if((bool)std::fetestexcept(FE_UNDERFLOW)){ 
+                    temp[j] = 0; 
+                    cout << "lambda = " << theta_vector[j] << " underflow" << endl;
+                    std::feclearexcept(FE_UNDERFLOW);
+                    }
+                // cout << "temp[j] " << temp[j] << endl;
             }
-            // for(size_t j = 0; j < dim_residual; j++)
-            // {
-            //     temp[j] = temp[j] / temp_max;
-            // }
             vec_sum(temp, temp_sum);
             // cout << "temp " << log(temp_sum) << " temp_max " << temp_max << endl;
-            ret3[i] += log(temp_sum); //+ log(temp_max); 
+            ret[i] += log(temp_sum) + concn*(delta_cand[i]) * log(temp_max); 
             // improve this to avoid the sum going to inf         
         }
     }
 
     for(size_t i = 0; i < K; i++)
     {
-        delta_loglike[tree_ind][i] = ret3[i] + B * concn * (delta_cand[i] - 1) * log(concn);
-        // delta_loglike[tree_ind][i] = ret1 + ret2 + ret3[i] + B * concn * (delta_cand[i] - 1) * log(concn);
+        delta_loglike[tree_ind][i] = ret[i] + B * concn * (delta_cand[i] - 1) * log(concn) - B * lgamma(concn * delta_cand[i]);
+
         // cout << "delta = " << delta_cand[i] << " likelihood " << delta_loglike[tree_ind][i] << endl;
         if((bool)std::fetestexcept(FE_OVERFLOW)) 
         {
