@@ -430,6 +430,14 @@ private:
     {
 
         size_t c = suffstats.size() / 2;
+
+        //suffstats[0] .. suffstats[c-1]is count of y's in cat 0,...,c-1, i.e. r in proposal
+        //suffstats[c] .. suffstats[2c-1] is sum of phi_i*(partial fit j)'s ie s in proposal
+      //  double nh = 0;
+      //  for (size_t j = 0; j < c; j++)
+      //  {
+      //    nh += suffstats[j];
+      //  }
         
       double ret = 0;
       double ret2 = 0;
@@ -437,8 +445,12 @@ private:
         
         for (size_t j = 0; j < c; j++)
         {
-            ret += -(concn + 2 * suffstats[j] ) * log(concn + suffstats[c + j]) + lgamma(concn +  2 * suffstats[j]);
-            ret2 += exp(concn * (1-delta) * log(concn + suffstats[c + j]) + lgamma(concn * delta +  2 * suffstats[j]) - lgamma(concn +  2 * suffstats[j]));
+            // double r = suffstats[j];
+            // double s = suffstats[c + j];
+            // ret += -(tau_a + suffstats[j]) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]) ;
+            // ret += -(tau_a + suffstats[j] ) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]);// - lgamma(suffstats[j] +1);
+            ret += -(concn + suffstats[j] ) * log(concn + suffstats[c + j]) + lgamma(concn + suffstats[j]);
+            ret2 += exp(concn * (1-delta) * log(concn + suffstats[c + j]) + lgamma(concn * delta + suffstats[j]) - lgamma(concn + suffstats[j]));
         }
         // cout << "loglike " << ret + log(ret2) << endl;
         return ret + log(ret2);

@@ -262,8 +262,15 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
 
     for (size_t j = 0; j < dim_theta; j++)
     {
+        // not necessary to assign to r and s again
+        // r = suff_stat[j];
+        // s = suff_stat[c + j];
 
-        std::gamma_distribution<double> gammadist(concn +  2 * suff_stat[j], 1.0);
+        // std::gamma_distribution<double> gammadist(tau_a + r, 1);
+
+        // theta_vector[j] = gammadist(state->gen) / (tau_b + s);
+
+        std::gamma_distribution<double> gammadist(concn + suff_stat[j], 1.0);
 
         theta_vector[j] = gammadist(state->gen) / (concn + suff_stat[dim_theta + j]);
     }
@@ -272,7 +279,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
     std::vector<double> weight(dim_theta, 0.0);
     for (size_t j = 0; j < dim_theta; j++)
     {
-        weight[j] = exp( concn * (1 - state->sigma) * log(concn + suff_stat[dim_theta + j])  + lgamma(concn * state->sigma +  2 * suff_stat[j]) - lgamma(concn +  2 * suff_stat[j]));
+        weight[j] = exp( concn * (1 - state->sigma) * log(concn + suff_stat[dim_theta + j])  + lgamma(concn * state->sigma + suff_stat[j]) - lgamma(concn + suff_stat[j]));
     }
     // draw category
     // std::cout << "weight " << weight << endl;
@@ -281,7 +288,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
     // std::cout << "favor category " << J << endl;
 
     // re-draw lambda for category J
-    std::gamma_distribution<double> gammadist(concn * state->sigma +  2 * suff_stat[J], 1.0); // ~Gamma(c*delta + r, c + s);
+    std::gamma_distribution<double> gammadist(concn * state->sigma + suff_stat[J], 1.0); // ~Gamma(c*delta + r, c + s);
     // std::cout << "c*delta " << concn * state->sigma << " suff_stat " << suff_stat[J] << endl;
 
     theta_vector[J] = gammadist(state->gen) / (concn + suff_stat[dim_theta + J]);
@@ -389,7 +396,7 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     double sum_fits = 0;
 
-    std::gamma_distribution<double> gammadist( 2 * 1.0, 1.0);
+    std::gamma_distribution<double> gammadist(1.0, 1.0);
 
     for (size_t i = 0; i < state->residual_std[0].size(); i++)
     {
