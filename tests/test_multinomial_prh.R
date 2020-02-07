@@ -68,7 +68,7 @@ X_test = X_train
 
 }
 num_trees = 100
-delta = 1:10 #seq(0.1, 2, 0.05)
+delta = seq(0.1, 2, 0.05)
 concn = 1
 tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
