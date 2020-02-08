@@ -5,19 +5,22 @@ library(XBART)
 
 pred = matrix(0,10000,10)
 
-if (get_param == TRUE){
-  num_trees = 120
-  num_sweeps = 40
-  burnin = 15
-  
-  
-  delta = seq(0.1, 2, 0.05)
-  concn = 1
-  Nmin = 1
-  max_depth = 10
-  mtry = 10
-  num_cutpoints = 20
-}
+if (!exists("num_trees")){num_trees = 120}
+if (!exists("num_sweeps")){num_sweeps = 40}
+if (!exists("burnin")){burnin = 15}
+if (!exists("delta")){delta = seq(0.1, 2, 0.05)}
+if (!exists("concn")){concn = 1}
+if (!exists("Nmin")){Nmin = 1}
+if (!exists("max_depth")){max_depth = 10}
+if (!exists("mtry")){mtry = 10}
+if (!exists("num_cutpoints")){num_cutpoints = 20}
+
+cat("num_trees = ", num_trees, "\n", 
+    "num_sweeps = ", num_sweeps, ", burnin = ", burnin, "\n",
+    "concn = ", concn,  ", delta = ", delta, "\n",
+    "Nmin = ", Nmin, ", max_depth = ", max_depth, "\n",
+    "mtry = ", mtry, ", num_cutpoints = ", num_cutpoints, "\n")
+
 tau = 100 / num_trees
 tau_later = 100 / num_trees
 

@@ -149,7 +149,3 @@ cat(paste("\n", "xbart runtime: ", round(tm["elapsed"],3)," seconds"),"\n")
 cat('average delta', mean(fit$delta), "\n")
 
 cat('average tree size', mean(fit$tree_size), "\n")
-
-cat('average time on each leaf ', tm[3] / sum(fit$tree_size), "\n")
-
-
