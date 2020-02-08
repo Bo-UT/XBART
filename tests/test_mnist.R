@@ -1,22 +1,25 @@
 library(XBART)
 
 
-tau = 100 / num_trees
-tau_later = 100 / num_trees
+
+
+pred = matrix(0,10000,10)
 
 if (get_param == TRUE){
-  num_trees = 50
+  num_trees = 120
   num_sweeps = 40
   burnin = 15
-  pred = matrix(0,10000,10)
   
-  delta = seq(0.1, 2, 0.02)
+  
+  delta = seq(0.1, 2, 0.05)
   concn = 1
   Nmin = 1
   max_depth = 10
   mtry = 10
-  num_cutpoints = 100
+  num_cutpoints = 20
 }
+tau = 100 / num_trees
+tau_later = 100 / num_trees
 
 
 t = proc.time()
