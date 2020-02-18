@@ -39,6 +39,12 @@ yhat = max.col(pred)-1
 spr <- split(pred, row(pred))
 logloss <- sum(unlist(mapply(function(x,y) -log(x[y]), spr, ytest, SIMPLIFY =TRUE)))
 
+cat("num_trees = ", num_trees, "\n", 
+    "num_sweeps = ", num_sweeps, ", burnin = ", burnin, "\n",
+    # "concn = ", concn,  ", delta = ", delta, "\n",
+    "Nmin = ", Nmin, ", max_depth = ", max_depth, "\n",
+    "mtry = ", mtry, ", num_cutpoints = ", num_cutpoints, "\n")
+
 cat("running time ", t[3], " seconds \n")
 
 cat("XBART error rate ", mean(yhat != ytest), "\n")
