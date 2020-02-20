@@ -286,11 +286,14 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     // Draw phi
 
     double sum_fits = 0;
+    double sum_fits_w = 0;
     double loglike_pi = 0;
     double min_fits = INFINITY;
     std::vector<double> fits(dim_theta, 0.0);
-    std::vector<double> sum_fits_w(weight_std.size(), 0.0);
+    std::vector<double> fits_w(dim_theta, 0.0);
     std::vector<double> loglike_weight(weight_std.size(), 0.0);
+    std::vector<double> diff_weight(weight_std.size(), 0.0); // diff_weight[i] = weight[i]/weight[i-1];
+    diff_vec(weight_std, diff_weight);
 
     size_t y_i;
     
@@ -300,36 +303,42 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     for (size_t i = 0; i < state->residual_std[0].size(); i++)
     {
         sum_fits = 0;
-        std::fill(sum_fits_w.begin(), sum_fits_w.end(), 0.0);
         for (size_t j = 0; j < dim_theta; ++j)
         {
             fits[j] = state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
         }
         vec_sum(fits, sum_fits);
+        // min_fits = *min_element(fits.begin(), fits.end());
+        for (size_t j = 0; j < dim_theta; ++j)
+        {
+            fits_w[j] = fits[j];// / min_fits;
+        }
 
-        min_fits = *min_element(fits.begin(), fits.end());
         for (size_t k = 0; k < weight_std.size(); ++k){
+            sum_fits_w = 0;
             for (size_t j = 0; j < dim_theta; j++){
-                sum_fits_w[k] += pow(fits[j]/min_fits, weight_std[k]);
+                fits_w[j] = pow(fits_w[j], diff_weight[k]); // f^w[k] = (f^w[k-1])^(w[k]/w[k-1])
                 // check under/overflow
-                if((bool)std::fetestexcept(FE_UNDERFLOW)){
-                    cout << " !underflow! weight " << weight_std[k] << " fits: " << fits << endl;
-                    abort();
-                }
-                else if((bool)std::fetestexcept(FE_OVERFLOW)){
-                    cout << " !overflow! weight " << weight_std[k] << " fits: " << fits << endl;
-                    abort();
-                }
+                // if((bool)std::fetestexcept(FE_UNDERFLOW)){
+                //     cout << " !underflow! weight " << weight_std[k] << " fits: " << fits << endl;
+                //     abort();
+                // }
+                // else if((bool)std::fetestexcept(FE_OVERFLOW)){
+                //     cout << " !overflow! weight " << weight_std[k] << " fits: " << fits << endl;
+                //     abort();
+                // }
             } 
-            loglike_weight[k] += log(sum_fits_w[k]) + weight_std[k] * log(min_fits);
+            // cout << "w " << weight_std[k] << " fits_w " << fits_w << endl;
+
+            vec_sum(fits_w, sum_fits_w);
+            // cout << "w "  << weight_std[k] << " sum fits "<< sum_fits_w << endl;
+            loglike_weight[k] += log(sum_fits_w);// + weight_std[k] * log(min_fits);
         }
         
 
         y_i = (*state->y_std)[i];
         // loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i]) - log(sum_fits);
         loglike_pi += log(fits[y_i]);
-        //COUT << "got scale";
-        //COUT << "draw phi ";
         (*phi)[i] = gammadist(state->gen) / (1.0*sum_fits);
         // std::cout << "phi: "<<(*phi)[i] << std::endl;
         // std::cout << "sum fit "<<sum_fits<< std::endl;

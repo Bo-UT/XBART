@@ -242,3 +242,12 @@ size_t count_non_zero(std::vector<double> &vec)
     }
     return output;
 }
+
+void diff_vec(std::vector<double> vec, std::vector<double> &diff_vec)
+{
+    diff_vec[0] = vec[0];
+    for (size_t i = 1; i < vec.size(); i++)
+    {
+        diff_vec[i] = vec[i]/vec[i-1];
+    }
+}

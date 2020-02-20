@@ -144,4 +144,6 @@ bool is_non_zero(size_t x);
 
 size_t count_non_zero(std::vector<double> &vec);
 
+void diff_vec(std::vector<double> vec, std::vector<double> &diff_vec);
+
 #endif
