@@ -8,6 +8,7 @@ if (!exists("num_sweeps")){num_sweeps = 40}
 if (!exists("burnin")){burnin = 15}
 # if (!exists("delta")){delta = seq(0.1, 2, 0.05)}
 # if (!exists("concn")){concn = 1}
+if(! exists("weight")){weight = seq(1, 10, 0.5)}
 if (!exists("Nmin")){Nmin = 1}
 if (!exists("max_depth")){max_depth = 10}
 if (!exists("mtry")){mtry = 10}
@@ -42,6 +43,7 @@ logloss <- sum(unlist(mapply(function(x,y) -log(x[y]), spr, ytest, SIMPLIFY =TRU
 cat("num_trees = ", num_trees, "\n", 
     "num_sweeps = ", num_sweeps, ", burnin = ", burnin, "\n",
     # "concn = ", concn,  ", delta = ", delta, "\n",
+    "weight = ", weight, "\n",
     "Nmin = ", Nmin, ", max_depth = ", max_depth, "\n",
     "mtry = ", mtry, ", num_cutpoints = ", num_cutpoints, "\n")
 
