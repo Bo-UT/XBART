@@ -238,16 +238,18 @@ void LogitModel::incSuffStat(matrix<double> &residual_std, size_t index_next_obs
 
     suffstats[(*y_size_t)[index_next_obs]] += weight;
 
-    size_t j = class_operating;
-    // for (size_t j = 0; j < dim_theta; ++j)
-    // {
-    // count number of observations, y_{ij}
-    // if ((*y_size_t)[index_next_obs] == j)
-    // suffstats[j] += 1;
-
-    // psi * f
-    suffstats[dim_theta + j] += (*phi)[index_next_obs] * residual_std[j][index_next_obs];
-    // }
+    if (separate_trees){
+        size_t j = class_operating;  
+        suffstats[dim_theta + j] += (*phi)[index_next_obs] * residual_std[j][index_next_obs];
+    }
+    else{
+        double phi_i = (*phi)[index_next_obs];
+        for (size_t j = 0; j < dim_theta; ++j)
+        {
+            suffstats[dim_theta + j] += phi_i * residual_std[j][index_next_obs];
+        }
+    }
+   
 
     return;
 }
@@ -261,22 +263,27 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
     // double r;
     // double s;
 
-    size_t j = class_operating;
+    if (separate_trees){
+        size_t j = class_operating;
 
-    // for (size_t j = 0; j < dim_theta; j++)
-    // {
-    // not necessary to assign to r and s again
-    // r = suff_stat[j];
-    // s = suff_stat[c + j];
+        std::gamma_distribution<double> gammadist(tau_a + suff_stat[j], 1.0);
 
-    // std::gamma_distribution<double> gammadist(tau_a + r, 1);
+        theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j]);
+        // }
+    }
+    else{
+        for (size_t j = 0; j < dim_theta; j++)
+        {
+        // not necessary to assign to r and s again
+        // r = suff_stat[j];
+        // s = suff_stat[c + j];
 
-    // theta_vector[j] = gammadist(state->gen) / (tau_b + s);
+        std::gamma_distribution<double> gammadist(tau_a + suff_stat[j], 1);
 
-    std::gamma_distribution<double> gammadist(tau_a + suff_stat[j], 1.0);
-
-    theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j]);
-    // }
+        theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j]);
+        }
+    }
+    
 
     return;
 }
@@ -305,49 +312,52 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     // size_t j = class_operating_now;
     // loop over total number of observations
-    for (size_t i = 0; i < state->residual_std[0].size(); i++)
+    if (separate_trees)
     {
-        sum_fits = 0;
-        // std::fill(sum_fits_w.begin(), sum_fits_w.end(), 0.0);
-        for (size_t j = 0; j < dim_theta; ++j)
+        for (size_t i = 0; i < state->residual_std[0].size(); i++)
         {
-            sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers_multinomial[j][tree_ind][i]))[j];
+            sum_fits = 0;
+            // std::fill(sum_fits_w.begin(), sum_fits_w.end(), 0.0);
+            for (size_t j = 0; j < dim_theta; ++j)
+            {
+                sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers_multinomial[j][tree_ind][i]))[j];
+            }
+
+            y_i = (*state->y_std)[i];
+            loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers_multinomial[class_operating][tree_ind][i]))[y_i]) - log(sum_fits);
+            // loglike_pi += log(fits[y_i]);
+            //COUT << "got scale";
+            //COUT << "draw phi ";
+            (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
+
+            // update phi_index
+            if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
+            else{phi_index[i] = true;}
+
         }
-        // vec_sum(fits, sum_fits);
-        // // Normalize pi
-        // min_fits = *min_element(fits.begin(), fits.end());
-        // for (size_t k = 0; k < weight_std.size(); ++k){
-        //     for (size_t j = 0; j < dim_theta; j++){
-        //         sum_fits_w[k] += pow(fits[j]/min_fits, weight_std[k]);
-        //         // check under/overflow
-        //         if((bool)std::fetestexcept(FE_UNDERFLOW)){
-        //             cout << " !underflow! weight " << weight_std[k] << " fits: " << fits << endl;
-        //             abort();
-        //         }
-        //         else if((bool)std::fetestexcept(FE_OVERFLOW)){
-        //             cout << " !overflow! weight " << weight_std[k] << " fits: " << fits << endl;
-        //             abort();
-        //         }
-        //     }
-        //     loglike_weight[k] += log(sum_fits_w[k]) + weight_std[k] * log(min_fits);
-        // }
+    }
+    else{
+        for (size_t i = 0; i < state->residual_std[0].size(); i++)
+        {
+            sum_fits = 0;
+            // std::fill(sum_fits_w.begin(), sum_fits_w.end(), 0.0);
+            for (size_t j = 0; j < dim_theta; ++j)
+            {
+                sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
+            }
 
-        y_i = (*state->y_std)[i];
-        loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers_multinomial[class_operating][tree_ind][i]))[y_i]) - log(sum_fits);
-        // loglike_pi += log(fits[y_i]);
-        //COUT << "got scale";
-        //COUT << "draw phi ";
-        (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
+            y_i = (*state->y_std)[i];
+            loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i]) - log(sum_fits);
+            // loglike_pi += log(fits[y_i]);
+            //COUT << "got scale";
+            //COUT << "draw phi ";
+            (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
-        // update phi_index
-        if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
-        else{phi_index[i] = true;}
-        
+            // update phi_index
+            if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
+            else{phi_index[i] = true;}
 
-
-        // std::cout << "phi: "<<(*phi)[i] << std::endl;
-        // std::cout << "sum fit "<<sum_fits<< std::endl;
-        //COUT << "draw phi complete";
+        }
     }
 
     // Draw weight
@@ -447,15 +457,27 @@ void LogitModel::state_sweep(size_t tree_ind, size_t M, matrix<double> &residual
     ////////////////////////////////////////////////////////
 
     // cumulative product of trees, multiply current one, divide by next one
-
-    for (size_t i = 0; i < residual_std[0].size(); i++)
-    {
-        // size_t j = class_operating_now;
-        for (size_t j = 0; j < dim_theta; ++j)
+    if (separate_trees){
+        for (size_t i = 0; i < residual_std[0].size(); i++)
         {
-            residual_std[j][i] = residual_std[j][i] * (*(x_struct->data_pointers_multinomial[j][tree_ind][i]))[j] / (*(x_struct->data_pointers_multinomial[j][next_index][i]))[j];
+            // size_t j = class_operating_now;
+            for (size_t j = 0; j < dim_theta; ++j)
+            {
+                residual_std[j][i] = residual_std[j][i] * (*(x_struct->data_pointers_multinomial[j][tree_ind][i]))[j] / (*(x_struct->data_pointers_multinomial[j][next_index][i]))[j];
+            }
         }
     }
+    else{
+        for (size_t i = 0; i < residual_std[0].size(); i++)
+        {
+            // size_t j = class_operating_now;
+            for (size_t j = 0; j < dim_theta; ++j)
+            {
+                residual_std[j][i] = residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j] / (*(x_struct->data_pointers[next_index][i]))[j];
+            }
+        }
+    }
+    
 
     return;
 }

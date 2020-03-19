@@ -467,6 +467,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     ini_matrix(yhats_test_xinfo, N_test, num_sweeps);
 
     // // Create trees
+    if (sample_var_per_tree) {separate_trees = true;} // for now
     vector<vector<vector<tree>>> *trees2 = new vector<vector<vector<tree>>>(num_class);
     for (size_t i = 0; i < num_class; i++)
     {
@@ -476,6 +477,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
             (*trees2)[i][j] = vector<tree>(num_trees);
         }
     }
+    
 
     // define model
     double tau_a = 1.0 / tau + 0.5;
@@ -487,6 +489,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     std::vector<double> weight_std(weight.size());
     for (size_t i = 0; i < weight.size(); ++i)
         weight_std[i] = weight[i];
+
 
     LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std, phi_threshold, separate_trees);
     model->setNoSplitPenality(no_split_penality);
@@ -512,8 +515,16 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     if (sample_var_per_tree){
         mcmc_loop_multinomial_sample_per_tree(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
     }
+    else if (separate_trees){
+        mcmc_loop_multinomial_separate_trees(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
+    }
     else{
-        mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
+        vector<vector<tree>> *trees = new vector<vector<tree>>(num_sweeps);
+        for (size_t j = 0; j < num_sweeps; j++)
+        {
+            (*trees)[j] = vector<tree>(num_trees);
+        }
+        mcmc_loop_multinomial(Xorder_std, verbose, *trees, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
     }
     
     
