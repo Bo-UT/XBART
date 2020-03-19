@@ -467,7 +467,6 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     ini_matrix(yhats_test_xinfo, N_test, num_sweeps);
 
     // // Create trees
-    if (sample_var_per_tree) {separate_trees = true;} // for now
     vector<vector<vector<tree>>> *trees2 = new vector<vector<vector<tree>>>(num_class);
     for (size_t i = 0; i < num_class; i++)
     {
@@ -477,6 +476,11 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
             (*trees2)[i][j] = vector<tree>(num_trees);
         }
     }
+    vector<vector<tree>> *trees = new vector<vector<tree>>(num_sweeps);
+        for (size_t j = 0; j < num_sweeps; j++)
+        {
+            (*trees)[j] = vector<tree>(num_trees);
+        }
     
 
     // define model
@@ -490,6 +494,8 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     for (size_t i = 0; i < weight.size(); ++i)
         weight_std[i] = weight[i];
 
+
+    if (sample_var_per_tree) {separate_trees = true;} // for now
 
     LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std, phi_threshold, separate_trees);
     model->setNoSplitPenality(no_split_penality);
@@ -519,11 +525,6 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
         mcmc_loop_multinomial_separate_trees(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
     }
     else{
-        vector<vector<tree>> *trees = new vector<vector<tree>>(num_sweeps);
-        for (size_t j = 0; j < num_sweeps; j++)
-        {
-            (*trees)[j] = vector<tree>(num_trees);
-        }
         mcmc_loop_multinomial(Xorder_std, verbose, *trees, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
     }
     
@@ -539,8 +540,14 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     // if stack by column, index starts from 0
     ////////////////////////////////////////////////
 
-    model->predict_std(Xtestpointer, N_test, p, num_trees, num_sweeps, yhats_test_xinfo, *trees2, output_vec);
+    if (separate_trees){
+        model->predict_std_separate_trees(Xtestpointer, N_test, p, num_trees, num_sweeps, yhats_test_xinfo, *trees2, output_vec);
 
+    }
+    else{
+        model->predict_std(Xtestpointer, N_test, p, num_trees, num_sweeps, yhats_test_xinfo, *trees, output_vec);
+    }
+    
     Rcpp::NumericVector output = Rcpp::wrap(output_vec);
     output.attr("dim") = Rcpp::Dimension(num_sweeps, N_test, num_class);
 

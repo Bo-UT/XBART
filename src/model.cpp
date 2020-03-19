@@ -605,10 +605,88 @@ void LogitModel::ini_residual_std(std::unique_ptr<State> &state)
 }
 
 // Not implemented yet, needs to return a nsweeps by n by num categories array with predicted category probabilities 9/10/2019
-void LogitModel::predict_std(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<vector<tree>>> &trees, std::vector<double> &output_vec)
+void LogitModel::predict_std(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<tree>> &trees, std::vector<double> &output_vec)
 {
 
     tree::tree_p bn;
+
+    for (size_t data_ind = 0; data_ind < N_test; data_ind++)
+    { // for each data observation
+        for (size_t sweeps = 0; sweeps < num_sweeps; sweeps++)
+        {
+            for (size_t i = 0; i < trees[0].size(); i++)
+            {
+                // search leaf
+                bn = trees[sweeps][i].search_bottom_std(Xtestpointer, data_ind, p, N_test);
+
+                for (size_t k = 0; k < dim_residual; k++)
+                {
+                        // add all trees
+
+                        // product of trees, thus sum of logs
+
+                    output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] += log(bn->theta_vector[k]);
+                }
+            }
+        }
+    }
+    
+
+    // cout << "output " << output_vec << endl;
+
+    // normalizing probability
+
+    double denom = 0.0;
+    double max_log_prob = -INFINITY;
+
+    for (size_t sweeps = 0; sweeps < num_sweeps; sweeps++)
+    {
+        for (size_t data_ind = 0; data_ind < N_test; data_ind++)
+        {
+
+            max_log_prob = -INFINITY;
+            // take exp, subtract max to avoid overflow
+
+            // this line does not work for some reason, havd to write loops manually
+            // output.tube(sweeps, data_ind) = exp(output.tube(sweeps, data_ind) - output.tube(sweeps, data_ind).max());
+
+            // find max of probability for all classes
+            for (size_t k = 0; k < dim_residual; k++)
+            {
+                if (output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] > max_log_prob)
+                {
+                    max_log_prob = output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test];
+                }
+            }
+
+            // take exp after subtracting max to avoid overflow
+            for (size_t k = 0; k < dim_residual; k++)
+            {
+                output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] = exp(output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] - max_log_prob);
+            }
+
+            // calculate normalizing constant
+            denom = 0.0;
+            for (size_t k = 0; k < dim_residual; k++)
+            {
+                denom += output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test];
+            }
+
+            // normalizing
+            for (size_t k = 0; k < dim_residual; k++)
+            {
+                output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] = output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] / denom;
+            }
+        }
+    }
+    return;
+}
+
+void LogitModel::predict_std_separate_trees(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<vector<tree>>> &trees, std::vector<double> &output_vec)
+{
+
+    tree::tree_p bn;
+
 
     for (size_t data_ind = 0; data_ind < N_test; data_ind++)
     { // for each data observation
@@ -623,15 +701,16 @@ void LogitModel::predict_std(const double *Xtestpointer, size_t N_test, size_t p
                 {
                     bn = trees[k][sweeps][i].search_bottom_std(Xtestpointer, data_ind, p, N_test);
 
-                    // product of trees, thus sum of logs
+                        // product of trees, thus sum of logs
 
-                    // cout << "one obs " << log(bn->theta_vector[k]) << "  "  << bn->theta_vector[k]  << endl;
+                        // cout << "one obs " << log(bn->theta_vector[k]) << "  "  << bn->theta_vector[k]  << endl;
 
                     output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] += log(bn->theta_vector[k]);
                 }
             }
         }
     }
+    
 
     // cout << "output " << output_vec << endl;
 
