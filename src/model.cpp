@@ -234,6 +234,7 @@ void LogitModel::incSuffStat(matrix<double> &residual_std, size_t index_next_obs
     // suffstats[0] += residual_std[0][index_next_obs];
 
     // sufficient statistics have 2 * num_classes
+    if (! phi_index[index_next_obs]){return;}
 
     suffstats[(*y_size_t)[index_next_obs]] += weight;
 
@@ -295,12 +296,12 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     // std::vector<double> loglike_weight(weight_std.size(), 0.0);
 
     size_t y_i;
-    double phi_i;
 
     std::gamma_distribution<double> gammadist(weight, 1.0);
 
     // clear phi_index
-    phi_index.clear();
+    // phi_index.clear();
+    
 
     // size_t j = class_operating_now;
     // loop over total number of observations
@@ -336,11 +337,11 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
         // loglike_pi += log(fits[y_i]);
         //COUT << "got scale";
         //COUT << "draw phi ";
-        phi_i = gammadist(state->gen) / (1.0 * sum_fits);
-        (*phi)[i] = phi_i;
+        (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
         // update phi_index
-        if (phi_i > phi_threshold) {phi_index.push_back(i);}
+        if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
+        else{phi_index[i] = true;}
         
 
 
@@ -393,8 +394,7 @@ void LogitModel::initialize_root_suffstat(std::unique_ptr<State> &state, std::ve
     suff_stat.resize(2 * dim_theta);
     std::fill(suff_stat.begin(), suff_stat.end(), 0.0);
 
-    // for (size_t i = 0; i < state->n_y; i++)
-    for (auto &&i: phi_index)
+    for (size_t i = 0; i < state->n_y; i++)
     {
         // from 0
         incSuffStat(state->residual_std, i, suff_stat);

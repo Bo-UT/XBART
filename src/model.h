@@ -490,14 +490,15 @@ public:
     // Should these pointers live in model subclass or state subclass?
     std::vector<size_t> *y_size_t; // a y vector indicating response categories in 0,1,2,...,c-1
     std::vector<double> *phi;      // latent variables for mnl
-    std::vector<size_t> phi_index; // vector of indexes for observations with phi greater than the threshold
+    std::vector<bool> phi_index; // vector of indexes for observations with phi greater than the threshold
     std::vector<double> weight_std;
 
     // which class is the code working on, for internal use only
     // grow separate tree for different class for multinomial case
     size_t class_operating;
+    bool separate_trees;
 
-    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std, double phi_threshold) : Model(num_classes, 2 * num_classes)
+    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std, double phi_threshold, bool separate_trees) : Model(num_classes, 2 * num_classes)
     {
         this->y_size_t = y_size_t;
         this->phi = phi;
@@ -510,9 +511,12 @@ public:
         this->weight_std = weight_std;
         this->class_operating = 0;
         this->phi_threshold = phi_threshold;
-        for (size_t i = 0; i < (*y_size_t).size(); ++i){
-            phi_index.push_back(i);
-        }
+        this->separate_trees = separate_trees;
+        // for (size_t i = 0; i < (*y_size_t).size(); ++i){
+        //     phi_index.push_back(i);
+        // }
+        this->phi_index.resize((*y_size_t).size());
+        std::fill(this->phi_index.begin(), this->phi_index.end(), true);
     }
 
     LogitModel() : Model(2, 4) {}
