@@ -87,7 +87,7 @@ public:
             }
         }
 
-        cout << "size of data pinters " << data_pointers_multinomial.size() << "  " << data_pointers_multinomial[1].size() << "  " << data_pointers_multinomial[1][1].size() << endl;
+        cout << "size of data pinters " << data_pointers_multinomial.size() << "  " << data_pointers_multinomial[0].size() << "  " << data_pointers_multinomial[0][0].size() << endl;
 
         return;
     }
