@@ -476,6 +476,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
             (*trees2)[i][j] = vector<tree>(num_trees);
         }
     }
+    
     vector<vector<tree>> *trees = new vector<vector<tree>>(num_sweeps);
         for (size_t j = 0; j < num_sweeps; j++)
         {
