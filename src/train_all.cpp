@@ -488,7 +488,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     for (size_t i = 0; i < weight.size(); ++i)
         weight_std[i] = weight[i];
 
-    LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std);
+    LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std, phi_threshold);
     model->setNoSplitPenality(no_split_penality);
 
     // State settings
@@ -509,11 +509,14 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     std::vector<std::vector<double>> weight_samples;
     ini_matrix(weight_samples, num_trees, num_sweeps);
 
-    ////////////////////////////////////////////////////////////////
-    // mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
-
-    mcmc_loop_multinomial_sample_per_tree(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
-
+    if (sample_var_per_tree){
+        mcmc_loop_multinomial_sample_per_tree(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
+    }
+    else{
+        mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
+    }
+    
+    
     // TODO: Implement predict OOS
 
     // output is in 3 dim, stacked as a vector, number of sweeps * observations * number of classes

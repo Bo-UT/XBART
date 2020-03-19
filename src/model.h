@@ -485,19 +485,19 @@ public:
     //   size_t dim_suffstat = 3;
 
     // prior on leaf parameter
-    double tau_a, tau_b, weight; //leaf parameter is ~ G(tau_a, tau_b). tau_a = 1/tau + 1/2, tau_b = 1/tau -> f(x)\sim N(0,tau) approx
+    double tau_a, tau_b, weight, phi_threshold; //leaf parameter is ~ G(tau_a, tau_b). tau_a = 1/tau + 1/2, tau_b = 1/tau -> f(x)\sim N(0,tau) approx
 
     // Should these pointers live in model subclass or state subclass?
     std::vector<size_t> *y_size_t; // a y vector indicating response categories in 0,1,2,...,c-1
     std::vector<double> *phi;      // latent variables for mnl
-
+    std::vector<size_t> phi_index; // vector of indexes for observations with phi greater than the threshold
     std::vector<double> weight_std;
 
     // which class is the code working on, for internal use only
     // grow separate tree for different class for multinomial case
     size_t class_operating;
 
-    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std) : Model(num_classes, 2 * num_classes)
+    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std, double phi_threshold) : Model(num_classes, 2 * num_classes)
     {
         this->y_size_t = y_size_t;
         this->phi = phi;
@@ -509,6 +509,10 @@ public:
         this->weight = weight_std[0];
         this->weight_std = weight_std;
         this->class_operating = 0;
+        this->phi_threshold = phi_threshold;
+        for (size_t i = 0; i < (*y_size_t).size(); ++i){
+            phi_index.push_back(i);
+        }
     }
 
     LogitModel() : Model(2, 4) {}
