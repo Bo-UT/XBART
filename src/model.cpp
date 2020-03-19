@@ -280,6 +280,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
         }
         // cout << "suff_stat " << suff_stat << endl;
     }
+    // cout << "theta_vector " << theta_vector << endl;
     
 
     return;
