@@ -234,7 +234,7 @@ void LogitModel::incSuffStat(matrix<double> &residual_std, size_t index_next_obs
     // suffstats[0] += residual_std[0][index_next_obs];
 
     // sufficient statistics have 2 * num_classes
-    if (! phi_index[index_next_obs]){return;}
+    // if (! phi_index[index_next_obs]){return;}
 
     suffstats[(*y_size_t)[index_next_obs]] += weight;
 
@@ -328,8 +328,8 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
             (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
             // update phi_index
-            if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
-            else{phi_index[i] = true;}
+            // if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
+            // else{phi_index[i] = true;}
 
         }
     }
@@ -351,8 +351,8 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
             (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
             // update phi_index
-            if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
-            else{phi_index[i] = true;}
+            // if ((*phi)[i] < phi_threshold) {phi_index[i] = false;}
+            // else{phi_index[i] = true;}
 
         }
     }
