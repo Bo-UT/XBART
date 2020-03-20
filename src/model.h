@@ -492,7 +492,7 @@ public:
     // Should these pointers live in model subclass or state subclass?
     std::vector<size_t> *y_size_t; // a y vector indicating response categories in 0,1,2,...,c-1
     std::vector<double> *phi;      // latent variables for mnl
-    std::vector<bool> phi_index; // vector of indexes for observations with phi greater than the threshold
+    std::vector<size_t> phi_index; // vector of indexes for observations with phi greater than the threshold
     std::vector<double> weight_std;
 
     // which class is the code working on, for internal use only
@@ -514,11 +514,9 @@ public:
         this->class_operating = 0;
         this->phi_threshold = phi_threshold;
         this->separate_trees = separate_trees;
-        // for (size_t i = 0; i < (*y_size_t).size(); ++i){
-        //     phi_index.push_back(i);
-        // }
-        this->phi_index.resize((*y_size_t).size());
-        std::fill(this->phi_index.begin(), this->phi_index.end(), true);
+        for (size_t i = 0; i < (*y_size_t).size(); ++i){
+            phi_index.push_back(i);
+        }
     }
 
     LogitModel() : Model(2, 4) {}

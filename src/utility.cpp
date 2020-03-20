@@ -256,3 +256,26 @@ size_t count_non_zero(std::vector<double> &vec)
     }
     return output;
 }
+
+
+void get_Xorder_phi_threshold(matrix<size_t> &Xorder_cp, matrix<size_t> &Xorder, std::vector<double> phi, double phi_threshold)
+{
+
+    size_t N = Xorder[0].size();
+    size_t p = Xorder.size();
+    size_t k; 
+
+    for (size_t i = 0; i < p; ++i)
+    {
+        k = 0;
+        for (size_t j = 0; j < N; ++j)
+        {
+            if ( phi[Xorder[i][j]] >= phi_threshold )
+            {
+                Xorder_cp[i][k] = Xorder[i][j];
+                k += 1;
+            }
+        }
+    }
+
+}

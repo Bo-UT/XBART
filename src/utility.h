@@ -55,6 +55,8 @@ void seq_gen_std(size_t start, size_t end, size_t length_out, std::vector<size_t
 
 void seq_gen_std2(size_t start, size_t end, size_t length_out, std::vector<size_t> &vec);
 
+void get_Xorder_phi_threshold(matrix<size_t> &Xorder_cp, matrix<size_t> &Xorder, std::vector<double> phi, double phi_threshold);
+
 // overload plus for std vectors
 template <typename T>
 std::vector<T> operator+(const std::vector<T> &a, const std::vector<T> &b)

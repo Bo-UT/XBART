@@ -403,7 +403,7 @@ Rcpp::List XBART_CLT_cpp(arma::mat y, arma::mat X, arma::mat Xtest, size_t num_t
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
-Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat X, arma::mat Xtest, size_t num_trees, size_t num_sweeps, size_t max_depth, size_t n_min, size_t num_cutpoints, double alpha, double beta, double tau, double no_split_penality, Rcpp::DoubleVector weight, size_t burnin = 1, size_t mtry = 0, size_t p_categorical = 0, double kap = 16, double s = 4, bool verbose = false, bool parallel = true, bool set_random_seed = false, size_t random_seed = 0, bool sample_weights_flag = true, bool separate_trees = false, bool sample_var_per_tree = false, double phi_threshold = 0.0)
+Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat X, arma::mat Xtest, size_t num_trees, size_t num_sweeps, size_t max_depth, size_t n_min, size_t num_cutpoints, double alpha, double beta, double tau, double no_split_penality, Rcpp::DoubleVector weight, size_t burnin = 1, size_t mtry = 0, size_t p_categorical = 0, double kap = 16, double s = 4, bool verbose = false, bool parallel = true, bool set_random_seed = false, size_t random_seed = 0, bool sample_weights_flag = true, bool separate_trees = true, bool sample_var_per_tree = false, double phi_threshold = 0.0)
 {
 
     auto start = system_clock::now();
@@ -476,7 +476,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
             (*trees2)[i][j] = vector<tree>(num_trees);
         }
     }
-    
+
     vector<vector<tree>> *trees = new vector<vector<tree>>(num_sweeps);
         for (size_t j = 0; j < num_sweeps; j++)
         {
@@ -519,7 +519,10 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     std::vector<std::vector<double>> weight_samples;
     ini_matrix(weight_samples, num_trees, num_sweeps);
 
-    if (sample_var_per_tree){
+    if ((!sample_var_per_tree) & separate_trees & phi_threshold > 0){
+        mcmc_loop_multinomial_separate_trees_phi(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
+    }
+    else if (sample_var_per_tree){
         mcmc_loop_multinomial_sample_per_tree(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples);
     }
     else if (separate_trees){
