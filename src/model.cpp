@@ -267,7 +267,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
 
         std::gamma_distribution<double> gammadist(tau_a + suff_stat[j], 1.0);
 
-        theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j]);
+        theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j] / min_fits);
         // }
     }
     else{
@@ -275,7 +275,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
         {
             std::gamma_distribution<double> gammadist(tau_a + suff_stat[j], 1);
 
-            theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j]);
+            theta_vector[j] = gammadist(state->gen) / (tau_b + suff_stat[dim_theta + j] / min_fits);
         }
         // cout << "suff_stat " << suff_stat << endl;
     }
@@ -294,10 +294,8 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     double sum_fits = 0;
     double loglike_pi = 0;
-    // double min_fits = INFINITY;
-    // std::vector<double> fits(dim_theta, 0.0);
-    // std::vector<double> sum_fits_w(weight_std.size(), 0.0);
-    // std::vector<double> loglike_weight(weight_std.size(), 0.0);
+    double min_fits = INFINITY;
+    std::vector<double> sum_fits_v(state->residual_std[0].size(), 0.0);
 
     size_t y_i;
 
@@ -322,13 +320,14 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
             y_i = (*state->y_std)[i];
             loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers_multinomial[y_i][tree_ind][i]))[y_i]) - log(sum_fits);
-            // loglike_pi += log(fits[y_i]);
-            //COUT << "got scale";
-            //COUT << "draw phi ";
-            (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
+
+            // (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
             // update phi_index
-            if ((*phi)[i] >= phi_threshold) {phi_index.push_back(i);}
+            // if ((*phi)[i] >= phi_threshold) {phi_index.push_back(i);}
+
+            sum_fits_v[i] = sum_fits;
+            if (sum_fits < min_fits) {min_fits = sum_fits;}
 
         }
     }
@@ -344,15 +343,21 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
             y_i = (*state->y_std)[i];
             loglike_pi += log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i]) - log(sum_fits);
-            // loglike_pi += log(fits[y_i]);
-            //COUT << "got scale";
-            //COUT << "draw phi ";
-            (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
 
-            // update phi_index
-            if ((*phi)[i] >= phi_threshold) {phi_index.push_back(i);}
+            // (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits);
+
+            // // update phi_index
+            // if ((*phi)[i] >= phi_threshold) {phi_index.push_back(i);}
+            sum_fits_v[i] = sum_fits;
+            if (sum_fits < min_fits) {min_fits = sum_fits;}
 
         }
+    }
+    
+    // update phi
+    for (size_t i = 0; i < state->residual_std[0].size(); i++){
+        (*phi)[i] = gammadist(state->gen) / (1.0 * sum_fits_v[i] / min_fits);
+        if ((*phi)[i] >= phi_threshold) {phi_index.push_back(i);}
     }
 
     // Draw weight
@@ -530,63 +535,6 @@ double LogitModel::likelihood(std::vector<double> &temp_suff_stat, std::vector<d
     return (LogitLIL(local_suff_stat));
 }
 
-/*
-    size_t nb;
-    double nbtau;
-    double y_sum;
-    double y_squared_sum;
-
-    if (no_split)
-    {
-        // ntau = suff_stat_all[2] * tau;
-        // suff_one_side = y_sum;
-
-        nb = suff_stat_all[2];
-        nbtau = nb * tau;
-        y_sum = suff_stat_all[0];
-        y_squared_sum = suff_stat_all[1];
-    }
-    else
-    {
-        if (left_side)
-        {
-            nb = N_left + 1;
-            nbtau = nb * tau;
-            // ntau = (N_left + 1) * tau;
-            y_sum = temp_suff_stat[0];
-            y_squared_sum = temp_suff_stat[1];
-            // suff_one_side = temp_suff_stat[0];
-        }
-        else
-        {
-            nb = suff_stat_all[2] - N_left - 1;
-            nbtau = nb * tau;
-            y_sum = suff_stat_all[0] - temp_suff_stat[0];
-            y_squared_sum = suff_stat_all[1] - temp_suff_stat[1];
-
-            // ntau = (suff_stat_all[2] - N_left - 1) * tau;
-            // suff_one_side = y_sum - temp_suff_stat[0];
-        }
-    }
-
-    // return 0.5 * log(sigma2) - 0.5 * log(nbtau + sigma2) + 0.5 * tau * pow(y_sum, 2) / (sigma2 * (nbtau + sigma2));
-
-    return - 0.5 * nb * log(2 * 3.141592653) -  0.5 * nb * log(sigma2) + 0.5 * log(sigma2) - 0.5 * log(nbtau + sigma2) - 0.5 * y_squared_sum / sigma2 + 0.5 * tau * pow(y_sum, 2) / (sigma2 * (nbtau + sigma2));
-
-*/
-
-// double NormalModel::likelihood_no_split(std::vector<double> &suff_stat, std::unique_ptr<State> &state) const
-// {
-//     // the likelihood of no-split option is a bit different from others
-//     // because the sufficient statistics is y_sum here
-//     // write a separate function, more flexibility
-//     double ntau = suff_stat[2] * tau;
-//     // double sigma2 = pow(state->sigma, 2);
-//     double sigma2 = state->sigma2;
-//     double value = suff_stat[2] * suff_stat[0]; // sum of y
-
-//     return 0.5 * log(sigma2) - 0.5 * log(ntau + sigma2) + 0.5 * tau * pow(value, 2) / (sigma2 * (ntau + sigma2));
-// }
 
 void LogitModel::ini_residual_std(std::unique_ptr<State> &state)
 {

@@ -462,7 +462,7 @@ private:
         // double r = suffstats[j];
         // double s = suffstats[c + j];
         // ret += -(tau_a + suffstats[j]) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]) ;
-        ret += -(tau_a + suffstats[j]) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]); // - lgamma(suffstats[j] +1);
+        ret += -(tau_a + suffstats[j]) * log(tau_b + suffstats[c + j] / min_fits) + lgamma(tau_a + suffstats[j]); // - lgamma(suffstats[j] +1);
         // }
         return ret;
     }
@@ -499,6 +499,7 @@ public:
     // grow separate tree for different class for multinomial case
     size_t class_operating;
     bool separate_trees;
+    double min_fits; // min sum_fits
 
     LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std, double phi_threshold, bool separate_trees) : Model(num_classes, 2 * num_classes)
     {
@@ -517,6 +518,7 @@ public:
         for (size_t i = 0; i < (*y_size_t).size(); ++i){
             phi_index.push_back(i);
         }
+        this->min_fits = 1.0;
     }
 
     LogitModel() : Model(2, 4) {}
