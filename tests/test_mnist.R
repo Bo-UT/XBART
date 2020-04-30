@@ -72,7 +72,7 @@ fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test,
                         no_split_penality = 1, weight = seq(9, 10, 0.5), burnin = burnin, mtry = mtry, p_categorical = 0L, 
                         kap = 1, s = 1, verbose = TRUE, parallel = FALSE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE,
-                        early_stopping = TRUE, stop_threshold = 10^-5) 
+                        early_stopping = TRUE, stop_threshold = 0.1) 
 t = proc.time() - t
 
 
