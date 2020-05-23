@@ -520,7 +520,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     ini_matrix(phi_samples, N, num_sweeps * num_trees);
 
     std::vector<std::vector<double>> weight_samples;
-    ini_matrix(weight_samples, num_trees, num_sweeps);
+    ini_matrix(weight_samples, num_class,  num_trees * num_sweeps);
 
     ////////////////////////////////////////////////////////////////
     size_t num_stops = 0; 
@@ -556,7 +556,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     Rcpp::NumericVector split_count_sum(p); // split counts
     Rcpp::XPtr<std::vector<std::vector<tree>>> tree_pnt(trees2, true);
     Rcpp::NumericMatrix phi_sample_rcpp(N, num_sweeps * num_trees);
-    Rcpp::NumericMatrix weight_sample_rcpp(num_trees, num_sweeps);
+    Rcpp::NumericMatrix weight_sample_rcpp(num_class, num_trees * num_sweeps);
 
     // TODO: Make these functions
     // for (size_t i = 0; i < N; i++)
@@ -574,9 +574,9 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
             phi_sample_rcpp(i, j) = phi_samples[j][i];
         }
     }
-    for (size_t i = 0; i < num_trees; i++)
+    for (size_t i = 0; i < num_class; i++)
     {
-        for (size_t j = 0; j < num_sweeps; j++)
+        for (size_t j = 0; j < num_sweeps * num_trees; j++)
         {
             weight_sample_rcpp(i, j) = weight_samples[j][i];
         }

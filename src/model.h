@@ -445,29 +445,29 @@ private:
         for (size_t j = 0; j < c; j++)
         {
             //!! devide s by min_sum_fits
-            // ret += -(tau_a + suffstats[j] ) * log(tau_b + suffstats[c + j] / min_fits) + lgamma(tau_a + suffstats[j]);// - lgamma(suffstats[j] +1);
-            ret += -(tau_a + suffstats[j] + 1/weight) * log(tau_b + suffstats[c + j]) - log(weight) + lgamma(tau_a + suffstats[j] + 1/weight);
+            // ret += -(tau_a + suffstats[j] ) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]);// - lgamma(suffstats[j] +1);
+            ret += -(tau_a + suffstats[j] + 1 / weight[j]) * log(tau_b + suffstats[c + j]) - log(weight[j]) + lgamma(tau_a + suffstats[j] + 1 / weight[j]);
         }
         return ret;
     }
 
-    double log_dlambda(const double &lambda, const double &w) const
+    double log_dlambda(const double &lambda, const double &w, const size_t &category_j) const
     {
-        return (tau_a + 1/w) * log(tau_b) + log(w) - lgamma(tau_a + 1/w) + tau_a * w * log(lambda) - tau_b * pow(lambda, w);
+        return (tau_a + 1/w) * log(tau_b) + log(w) - lgamma(tau_a + 1/w) + tau_a * w * log(lambda) / weight[category_j] - tau_b * pow(lambda, w / weight[category_j]);
     }
 
     double loglike_x(std::unique_ptr<State> &state, std::unique_ptr<X_struct> &x_struct, const size_t &tree_ind, const size_t &ind, const double &w) const
     { 
-        double f_j;
+        size_t y_i = (*state->y_std)[ind];
         double sum_fits = 0.0;
 
         for (size_t j = 0; j < dim_residual; j++)
         {   
-            f_j = state->residual_std[j][ind] * (*(x_struct->data_pointers[tree_ind][ind]))[j];
-            sum_fits += pow(f_j, w); 
+            sum_fits += pow(state->residual_std[j][ind] * (*(x_struct->data_pointers[tree_ind][ind]))[j], w / weight[j] ); // lambda^weight[]
+           // sum_fits +=  pow(f_j, w); 
         }
 
-        return w * log(state->residual_std[(*state->y_std)[ind]][ind] * (*(x_struct->data_pointers[tree_ind][ind]))[(*state->y_std)[ind]]) - log(sum_fits);
+        return w / weight[y_i] * log(state->residual_std[(*state->y_std)[ind]][ind] * (*(x_struct->data_pointers[tree_ind][ind]))[y_i]) - log(sum_fits);
     }
 
     // void LogitSamplePars(vector<double> &suffstats, double &tau_a, double &tau_b, std::mt19937 &generator, std::vector<double> &theta_vector)
@@ -490,18 +490,17 @@ public:
  //   size_t dim_suffstat = 3;
 
     // prior on leaf parameter
-    double tau_a, tau_b, weight; //leaf parameter is ~ G(tau_a, tau_b). tau_a = 1/tau + 1/2, tau_b = 1/tau -> f(x)\sim N(0,tau) approx
+    double tau_a, tau_b; //leaf parameter is ~ G(tau_a, tau_b). tau_a = 1/tau + 1/2, tau_b = 1/tau -> f(x)\sim N(0,tau) approx
 
     // Should these pointers live in model subclass or state subclass?
     std::vector<size_t> *y_size_t; // a y vector indicating response categories in 0,1,2,...,c-1
     std::vector<double> *phi; // latent variables for mnl
 
-    std::vector<double> weight_std;
+    std::vector<double> weight_candidate;
+    std::vector<double> weight;
 
 
-    double min_fits;
-
-    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std) : Model(num_classes, 2*num_classes)
+    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_candidate) : Model(num_classes, 2*num_classes)
     {
       this->y_size_t = y_size_t;
       this->phi = phi;
@@ -509,11 +508,10 @@ public:
         this->tau_b = tau_b;
         this->alpha = alpha;
         this->beta = beta;
-        //what should this be?
         this->dim_residual = num_classes;
-        this->weight = weight_std[0];
-        this->weight_std = weight_std;
-        this->min_fits = 1.0;
+        this->weight_candidate = weight_candidate;
+        this->weight.resize(num_classes);
+        std::fill(this->weight.begin(), this->weight.end(), weight_candidate[0]);
 
     }
 
@@ -543,7 +541,7 @@ public:
 
     void predict_std(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<tree>> &trees, std::vector<double> &output_vec);
 
-    void predict_std_standalone(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<tree>> &trees, std::vector<double> &output_vec, std::vector<size_t>& iteration, double weight);
+    void predict_std_standalone(const double *Xtestpointer, size_t N_test, size_t p, size_t num_trees, size_t num_sweeps, matrix<double> &yhats_test_xinfo, vector<vector<tree>> &trees, std::vector<double> &output_vec, std::vector<size_t>& iteration );
 };
 
 

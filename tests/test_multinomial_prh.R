@@ -87,7 +87,7 @@ tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=8, 
                         Nmin=10, num_cutpoints=100, alpha=0.95, beta=1.25, tau_a = 1.5, tau_b = 0.5, 
-                        no_split_penality = 1, weight = seq(1, 2, 0.5),burnin = burnin, mtry = 3, p_categorical = p_cat, 
+                        no_split_penality = 1, weight = seq(1, 10, 0.5),burnin = burnin, mtry = 3, p_categorical = p_cat, 
                         kap = 1, s = 1, verbose = FALSE, set_random_seed = FALSE, random_seed = NULL,
                         sample_weights_flag = TRUE, stop_threshold = 0.09, nthread = 4) 
 
@@ -97,7 +97,6 @@ cat(paste("\n", "parallel xbart runtime: ", round(tm["elapsed"],3)," seconds"),"
 # take average of all sweeps, discard burn-in
 # a = apply(fit$yhats_test[burnin:num_sweeps,,], c(2,3), median)
 a = apply(fit$yhats_test[burnin:num_sweeps,,], c(2,3), median)
-pred = apply(a,1,which.max)-1
 yhat = apply(a,1,which.max)-1
 cat(paste("xbart classification accuracy: ",round(mean(y_test == yhat),3)),"\n")
 
@@ -161,7 +160,11 @@ cat(paste("xgboost logloss : ", round(logloss.xgb,3)),"\n")
 cat(paste("\n", "xbart runtime: ", round(tm["elapsed"],3)," seconds"),"\n")
 cat(paste("xgboost runtime: ", round(tm2["elapsed"],3)," seconds"),"\n")
 
-table(fit$weight)
+for (i in 1:k)
+{
+  print( table(fit$weight[i, ]) )
+}
+
 # 
 cat("early stops per tree: ", round(fit$num_stops/num_sweeps/num_trees, 3), "\n")
 # 

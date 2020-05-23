@@ -241,7 +241,7 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
                 phi_samples[sweeps * state->num_trees + tree_ind][kk] = (*(model->phi))[kk];
             }     
             
-            weight_samples[sweeps][tree_ind] = model->weight;
+            weight_samples[sweeps * state->num_trees + tree_ind] = model->weight;
         }
 
         // if (sweeps <= state->burnin){
