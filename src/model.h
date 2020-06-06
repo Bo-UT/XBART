@@ -433,23 +433,32 @@ private:
 
         size_t c = suffstats.size() / 2;
 
-        //suffstats[0] .. suffstats[c-1]is count of y's in cat 0,...,c-1, i.e. r in proposal
-        //suffstats[c] .. suffstats[2c-1] is sum of phi_i*(partial fit j)'s ie s in proposal
-      //  double nh = 0;
-      //  for (size_t j = 0; j < c; j++)
-      //  {
-      //    nh += suffstats[j];
-      //  }
-        
-      double ret = 0;
-        
+        std::vector<double> ret(c, 0.0);
+        double max = -INFINITY;
+        double sum_logf = 0.0;
+        double x = 1;
+
+        for (size_t j = 0; j < c; j++)
+        {
+            sum_logf += - suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x);
+        }
         
         for (size_t j = 0; j < c; j++)
         {
             //!! devide s by min_sum_fits
-            ret += -(tau_a + suffstats[j] ) * log(tau_b + suffstats[c + j] / min_fits) + lgamma(tau_a + suffstats[j]);// - lgamma(suffstats[j] +1);
+            ret[j] = -(tau_a + weight * suffstats[j] ) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + weight * suffstats[j]);// - lgamma(suffstats[j] +1);
+            ret[j] += sum_logf - (- suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x));
+            max = ret[j] > max ? ret[j] : max;
         }
-        return ret;
+
+        for (size_t j = 0; j < c; j++)
+        {
+            ret[j] = exp(ret[j] - max);
+        }
+
+        double mean_ret = std::accumulate(ret.begin(), ret.end(), 0.0) / ret.size();
+
+        return log(mean_ret) + max;
     }
 
     // void LogitSamplePars(vector<double> &suffstats, double &tau_a, double &tau_b, std::mt19937 &generator, std::vector<double> &theta_vector)
