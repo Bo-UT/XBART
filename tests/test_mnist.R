@@ -52,8 +52,8 @@ Nmin = 5
 max_depth = 250
 mtry = 100
 num_cutpoints=20
-tau_a = 16
-tau_b = 2
+tau_a = 30
+tau_b = 3
 
 
 ws = c(1)
@@ -74,7 +74,7 @@ cat("test fit running time ", t[3], " seconds \n")
 fit_test$importance
 
 
-drop_threshold = 0
+drop_threshold = 1
 
 X_train = X_train[, -which(fit_test$importance < drop_threshold)]
 X_test = X_test[, -which(fit_test$importance < drop_threshold)]
@@ -107,11 +107,9 @@ cat("XBART error rate ", mean(yhat != ytest), "\n")
 cat(paste("xbart logloss : ",round(logloss,3)),"\n")
 ##################################################################
 
-
-
 # for(i in 0:9){
 #   cat("XBART error rate in ", i, ": ", round(mean(yhat[ytest==i]!=i), 4), 
 #       " misclassified as ", tail(names(sort(table(yhat[ytest==i]))), 2)[1], "\n " )
 # }
 # 
-saveRDS(fit, paste(path, 'mnist_result/mnist_060603.rds', sep = ''))
+saveRDS(fit, paste(path, 'mnist_result/mnist_060605.rds', sep = ''))

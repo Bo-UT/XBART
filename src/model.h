@@ -435,19 +435,20 @@ private:
 
         std::vector<double> ret(c, 0.0);
         double max = -INFINITY;
-        double sum_logf = 0.0;
+        double sum_s = std::accumulate(suffstats.begin() + int(c), suffstats.end(), 0.0);
         double x = 1;
 
-        for (size_t j = 0; j < c; j++)
-        {
-            sum_logf += - suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x);
-        }
+        // for (size_t j = 0; j < c; j++)
+        // {
+        //     sum_logf += - suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x);
+        // }
         
         for (size_t j = 0; j < c; j++)
         {
             //!! devide s by min_sum_fits
             ret[j] = -(tau_a + weight * suffstats[j] ) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + weight * suffstats[j]);// - lgamma(suffstats[j] +1);
-            ret[j] += sum_logf - (- suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x));
+            // ret[j] += sum_logf - (- suffstats[c+j] * pow(x, weight) - tau_b * x + (suffstats[j] * weight + tau_a - 1) * log(x));
+            ret[j] += - sum_s + suffstats[c+j];
             max = ret[j] > max ? ret[j] : max;
         }
 

@@ -257,21 +257,24 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
     size_t c = suff_stat.size() / 2;
 
         std::vector<double> ret(c, 0.0);
-        double sum_logf = 0.0;
+        // double sum_logf = 0.0;
+        double sum_s = std::accumulate(suff_stat.begin() + int(c), suff_stat.end(), 0.0);
         double x = 1;
 
-        for (size_t j = 0; j < c; j++)
-        {
-            sum_logf += - suff_stat[c+j] * pow(x, weight) - tau_b * x + (suff_stat[j] * weight + tau_a - 1) * log(x);
-        }
+        // for (size_t j = 0; j < c; j++)
+        // {
+        //     sum_logf += - suff_stat[c+j] * pow(x, weight) - tau_b * x + (suff_stat[j] * weight + tau_a - 1) * log(x);
+        // }
         
         for (size_t j = 0; j < c; j++)
         {
             //!! devide s by min_sum_fits
             ret[j] = -(tau_a + weight * suff_stat[j] ) * log(tau_b + suff_stat[c + j]) + lgamma(tau_a + weight * suff_stat[j]);// - lgamma(suffstats[j] +1);
-            ret[j] += sum_logf - (- suff_stat[c+j] * pow(x, weight) - tau_b * x + (suff_stat[j] * weight + tau_a - 1) * log(x));
+            // ret[j] += sum_logf - (- suff_stat[c+j] * pow(x, weight) - tau_b * x + (suff_stat[j] * weight + tau_a - 1) * log(x));
+            ret[j] += - sum_s + suff_stat[c + j];
             ret[j] = exp(ret[j]);
         }
+        
         double sum_ret = std::accumulate(ret.begin(), ret.end(), 0.0);
         for (size_t j = 0; j < c; j ++)
         {
