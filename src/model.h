@@ -490,9 +490,6 @@ public:
 
     std::vector<double> weight_std;
 
-
-    double min_fits;
-
     LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std) : Model(num_classes, 2*num_classes)
     {
       this->y_size_t = y_size_t;
@@ -505,7 +502,6 @@ public:
         this->dim_residual = num_classes;
         this->weight = weight_std[0];
         this->weight_std = weight_std;
-        this->min_fits = 1.0;
 
     }
 

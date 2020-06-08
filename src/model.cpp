@@ -307,7 +307,6 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     double sum_fits = 0;
     double loglike_pi = 0;
-    // double min_fits = INFINITY;
     // std::vector<double> fits(dim_theta, 0.0);
     // std::vector<double> sum_fits_w(weight_std.size(), 0.0);
     // std::vector<double> loglike_weight(weight_std.size(), 0.0);
@@ -317,7 +316,6 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     std::gamma_distribution<double> gammadist(weight, 1.0);
 
-    // min_fits = INFINITY;
     // std::vector<double> sum_fits_v (state->residual_std[0].size(), 0.0);
     // std::vector<double> entropy_vec(state->residual_std[0].size(), 0.0);
     // double sum_entropy = 0.0;
