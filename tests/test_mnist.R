@@ -45,15 +45,15 @@ p = v
 
 
 
-num_sweeps= 20 #30
-num_trees = 20
-burnin = 5 #10
+num_sweeps= 30 #30
+num_trees = 10
+burnin = 15 #10
 Nmin = 5
 max_depth = 250
-mtry = 100
-num_cutpoints=20
-tau_a = 30
-tau_b = 3
+mtry = 50
+num_cutpoints=100
+tau_a = 16
+tau_b = 4
 
 
 ws = c(1)
