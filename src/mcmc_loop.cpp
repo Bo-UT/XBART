@@ -233,6 +233,9 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
             
             state->update_split_counts(tree_ind);
 
+            // update partial fits for the next tree
+            model->update_state(state, 0, x_struct);
+
             if (sweeps >= state->burnin)
             {
                 for(size_t i = 0; i < state->split_count_all.size(); i++)
@@ -249,19 +252,7 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
             
             weight_samples[sweeps][tree_ind] = model->weight;
         }
-
-        // update partial fits for the next tree
-        model->update_state(state, 0, x_struct);
-
-        // if (sweeps <= state->burnin){
-        //     model->stop = false;
-        // }
-        // if (sweeps > state->burnin & model->stop){
-        //     state->num_sweeps = sweeps + 1;
-        //     break;
-        // }
     }
-    // thread_pool.stop();  
 }
 
 
