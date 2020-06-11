@@ -49,38 +49,38 @@ num_sweeps= 30 #30
 num_trees = 10
 burnin = 15 #10
 Nmin = 5
-max_depth = 250
-mtry = 50
+max_depth = 25
+mtry = 200
 num_cutpoints=100
-tau_a = 16
-tau_b = 4
+tau_a = 30
+tau_b = 7.5
 
 
 ws = c(1)
 
 
 ##################### test run to drop variables #################
-t = proc.time()
-fit_test = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
-                        num_trees=num_trees, num_sweeps=2, max_depth=max_depth, 
-                        Nmin=Nmin, num_cutpoints=num_cutpoints, alpha=0.95, beta=1.25, tau_a = tau_a, tau_b = tau_b,
-                        no_split_penality = 1, weight = c(1), #seq(1, 10, 0.5), 
-                        burnin = 1, mtry = mtry, p_categorical = p, 
-                        kap = 1, s = 1, verbose = TRUE, parallel = TRUE, set_random_seed = TRUE, 
-                        random_seed = NULL, sample_weights_flag = TRUE, sample_per_tree = TRUE, stop_threshold = 0.1) 
-t = proc.time() - t
-cat("test fit running time ", t[3], " seconds \n")
+#  = proc.time()
+# fit_test = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
+#                         num_trees=num_trees, num_sweeps=2, max_depth=max_depth, 
+#                         Nmin=Nmin, num_cutpoints=num_cutpoints, alpha=0.95, beta=1.25, tau_a = tau_a, tau_b = tau_b,
+#                         no_split_penality = 1, weight = c(1), #seq(1, 10, 0.5), 
+#                         burnin = 1, mtry = mtry, p_categorical = p, 
+#                         kap = 1, s = 1, verbose = TRUE, parallel = TRUE, set_random_seed = TRUE, 
+#                         random_seed = NULL, sample_weights_flag = TRUE, sample_per_tree = TRUE, stop_threshold = 0.1) 
+# t = proc.time() - t
+# cat("test fit running time ", t[3], " seconds \n")
 
-fit_test$importance
+# fit_test$importance
 
 
-drop_threshold = 1
+# drop_threshold = 1
 
-X_train = X_train[, -which(fit_test$importance < drop_threshold)]
-X_test = X_test[, -which(fit_test$importance < drop_threshold)]
-p = ncol(X_train)
-cat('dropped variables ', which(fit_test$importance < drop_threshold) )
-#################################################################
+# X_train = X_train[, -which(fit_test$importance < drop_threshold)]
+# X_test = X_test[, -which(fit_test$importance < drop_threshold)]
+# p = ncol(X_train)
+# cat('dropped variables ', which(fit_test$importance < drop_threshold) )
+# #################################################################t
 
 
 ###################### parallel #################
@@ -112,4 +112,4 @@ cat(paste("xbart logloss : ",round(logloss,3)),"\n")
 #       " misclassified as ", tail(names(sort(table(yhat[ytest==i]))), 2)[1], "\n " )
 # }
 # 
-saveRDS(fit, paste(path, 'mnist_result/mnist_060605.rds', sep = ''))
+saveRDS(fit, paste(path, 'mnist_result/mnist_061005.rds', sep = ''))
