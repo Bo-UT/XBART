@@ -1438,7 +1438,7 @@ void calculate_loglikelihood_continuous(std::vector<double> &loglike, const std:
         // set up parallel during burnin 
         //  state->p_continuous * state->nthread > 100 // this is approximately the cost to set up parallel for
         // #pragma omp parallel for if(state->use_all & state->p_continuous * state->nthread > 120) schedule(dynamic, 1) default(none) shared(N_Xorder, state, subset_vars, Xorder_std, model, candidate_index, tree_pointer, loglike, loglike_max)
-        for (auto &&i : subset_vars)
+        for (auto i : subset_vars)
         {
             #pragma omp task firstprivate(i) shared(N_Xorder, Xorder_std, subset_vars, state, tree_pointer, candidate_index, model, loglike, loglike_max)
             {
@@ -1477,7 +1477,7 @@ void calculate_loglikelihood_continuous(std::vector<double> &loglike, const std:
         // set up parallel during burnin?
         // state->p_continuous * state->nthread > 100 // this is approximately the cost to set up parallel for
         // #pragma omp parallel for if(state->use_all & state->p_continuous * state->nthread > 120 ) schedule(dynamic, 1) default(none) shared(state, subset_vars, Xorder_std, model, candidate_index2, tree_pointer, loglike, loglike_max)
-        for (auto &&i : subset_vars){
+        for (auto i : subset_vars){
         #pragma omp task firstprivate(i) shared(Xorder_std, subset_vars, state, tree_pointer, candidate_index2, model, loglike, loglike_max)
             {
             if (i < state->p_continuous){
@@ -1517,7 +1517,7 @@ void calculate_loglikelihood_categorical(std::vector<double> &loglike, size_t &l
     // #pragma omp parallel for 
     //schedule(dynamic, 1)
     // #pragma omp parallel for if(state->use_all & state->p_categorical * state->nthread > 140) schedule(dynamic, 1) default(none) shared(loglike_start, x_struct, X_counts,X_num_unique,  state, subset_vars, Xorder_std, model, tree_pointer, loglike, loglike_max)
-    for (auto &&i : subset_vars){
+    for (auto i : subset_vars){
         // size_t var_effective_cutpoints = 0;
 
         if ((i >= state->p_continuous) && (X_num_unique[i - state->p_continuous] > 1))
