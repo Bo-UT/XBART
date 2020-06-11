@@ -28,9 +28,10 @@ X.test = X_test
 v = 0
 for (h in 1:p){
   breaks =unique(as.numeric(quantile(c(X_train[,h],X_test[,h]),seq(0,1,length.out=4))))
-  #breaks = seq(min(c(X_train[,h],X_test[,h])),max(c(X_train[,h],X_test[,h])),length.out = 25)
+  # breaks = seq(min(c(X_train[,h],X_test[,h])),max(c(X_train[,h],X_test[,h])),length.out = 25)
   breaks = c(-Inf,breaks,+Inf)
-  #print(breaks)
+#   print(unique(breaks))
+# }
   if (length(breaks)>3){
     v = v + 1
     X.train[,v] = cut(X_train[,h],breaks = breaks,include.lowest=TRUE,labels=FALSE)
@@ -45,16 +46,15 @@ p = v
 
 
 
-num_sweeps= 30 #30
+num_sweeps= 20 #30
 num_trees = 10
-burnin = 15 #10
+burnin = 10 #10
 Nmin = 5
-max_depth = 25
+max_depth = 50
 mtry = 200
 num_cutpoints=100
 tau_a = 30
 tau_b = 7.5
-
 
 ws = c(1)
 
@@ -88,7 +88,7 @@ t = proc.time()
 fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=max_depth, 
                         Nmin=Nmin, num_cutpoints=num_cutpoints, alpha=0.95, beta=1.25, tau_a = tau_a, tau_b = tau_b, 
-                        no_split_penality = 1, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p, 
+                        no_split_penality = 0.5, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p, 
                         kap = 1, s = 1, verbose = TRUE, parallel = TRUE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE, sample_per_tree = TRUE, stop_threshold = 0.1, nthread = 0) 
 t = proc.time() - t
@@ -112,4 +112,4 @@ cat(paste("xbart logloss : ",round(logloss,3)),"\n")
 #       " misclassified as ", tail(names(sort(table(yhat[ytest==i]))), 2)[1], "\n " )
 # }
 # 
-saveRDS(fit, paste(path, 'mnist_result/mnist_061005.rds', sep = ''))
+saveRDS(fit, paste(path, 'mnist_result/mnist_061007.rds', sep = ''))
