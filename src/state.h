@@ -109,7 +109,8 @@ public:
         this->burnin = burnin;
         this->ini_var_yhat = ini_var_yhat;
         this->nthread = nthread;
-
+        this->dim_residual = dim_residual;
+        
         return;
     }
 
