@@ -723,6 +723,14 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
         if (this->entropy < entropy_threshold * N_Xorder) {
             #pragma omp critical 
             num_stops += 1;
+            if (!update_split_prob)
+            {
+            // #pragma omp parallel for schedule(static, 128)
+            for (size_t i = 0; i < N_Xorder; i++)
+            {
+                x_struct->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            }
+            }
             return;
         }
     }
@@ -730,11 +738,27 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
     // if (N_Xorder <= state->n_min)
     if (N <= state->n_cutpoints + 1 + 2 * state->n_min)
     {
+        if (!update_split_prob)
+        {
+            // #pragma omp parallel for schedule(static, 128)
+            for (size_t i = 0; i < N_Xorder; i++)
+            {
+                x_struct->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            }
+        }
         return;
     }
 
     if (this->depth >= state->max_depth - 1)
     {
+        if (!update_split_prob)
+        {
+            // #pragma omp parallel for schedule(static, 128)
+            for (size_t i = 0; i < N_Xorder; i++)
+            {
+                x_struct->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            }
+        }
         return;
     }
 
@@ -822,6 +846,14 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
     // If our current split is same as parent, exit
     if ((this->p) && (this->v == (this->p)->v) && (this->c == (this->p)->c))
     {
+        if (!update_split_prob)
+        {
+            // #pragma omp parallel for schedule(static, 128)
+            for (size_t i = 0; i < N_Xorder; i++)
+            {
+                x_struct->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            }
+        }
         return;
     }
 
@@ -881,7 +913,7 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
 
     #pragma omp task untied shared(state, Xorder_std, x_struct, model, entropy_threshold, num_stops, tree_ind, sweeps)
     {
-            this->l->grow_from_root_entropy(state, Xorder_left_std, X_counts_left, X_num_unique_left, model, x_struct, sweeps, tree_ind, update_theta, update_split_prob, grow_new_tree, entropy_threshold, num_stops);
+        this->l->grow_from_root_entropy(state, Xorder_left_std, X_counts_left, X_num_unique_left, model, x_struct, sweeps, tree_ind, update_theta, update_split_prob, grow_new_tree, entropy_threshold, num_stops);
     }
     #pragma omp task untied shared(state, Xorder_std, x_struct, model, entropy_threshold, num_stops, tree_ind, sweeps)
     {
