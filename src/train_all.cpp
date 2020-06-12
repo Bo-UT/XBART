@@ -526,7 +526,12 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     ////////////////////////////////////////////////////////////////
     size_t num_stops = 0; 
 
-    mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples, stop_threshold, num_stops);
+    
+    matrix<double> lambda_std;
+    ini_matrix(lambda_std, num_sweeps * num_trees * num_class, N);
+
+    mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples, stop_threshold, num_stops, lambda_std);
+    cout << "finish loop" << endl;
     // replace num_sweeps with  sweep;
     // num_sweeps = state->num_sweeps;
 
@@ -558,6 +563,14 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     Rcpp::XPtr<std::vector<std::vector<tree>>> tree_pnt(trees2, true);
     Rcpp::NumericMatrix phi_sample_rcpp(N, num_sweeps * num_trees);
     Rcpp::NumericMatrix weight_sample_rcpp(num_trees, num_sweeps);
+
+    Rcpp::NumericMatrix lambda(N, num_sweeps * num_trees * num_class); 
+    for(size_t i = 0; i < N; i++)
+    {
+        for (size_t j = 0; j < num_sweeps * num_trees * num_class; j++){
+            lambda(i, j) = lambda_std[i][j];
+        }
+    }
 
     // TODO: Make these functions
     // for (size_t i = 0; i < N; i++)
@@ -618,6 +631,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
         Rcpp::Named("importance") = split_count_sum,
         // Rcpp::Named("num_sweeps") = num_sweeps,
         Rcpp::Named("num_stops") = num_stops,
+        Rcpp::Named("lambda") = lambda,
         Rcpp::Named("model_list") = Rcpp::List::create(Rcpp::Named("tree_pnt") = tree_pnt, Rcpp::Named("y_mean") = y_mean, Rcpp::Named("p") = p, Rcpp::Named("num_class") = num_class, Rcpp::Named("num_sweeps") = num_sweeps, Rcpp::Named("num_trees") = num_trees));
 }
 

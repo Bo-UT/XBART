@@ -169,7 +169,7 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
                            vector<vector<tree>> &trees, double no_split_penalty,
                            std::unique_ptr<State> &state, LogitModel *model,
                            std::unique_ptr<X_struct> &x_struct, std::vector< std::vector<double> > &phi_samples, 
-                           std::vector< std::vector<double> > &weight_samples, double entropy_threshold, size_t &num_stops)
+                           std::vector< std::vector<double> > &weight_samples, double entropy_threshold, size_t &num_stops, matrix<double>  &lambda)
 {
     // if (state->parallel)
     //     thread_pool.start();
@@ -234,7 +234,7 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
             state->update_split_counts(tree_ind);
 
             // update partial fits for the next tree
-            model->update_state(state, 0, x_struct);
+            model->update_state(state, tree_ind, x_struct);
 
             if (sweeps >= state->burnin)
             {
@@ -243,7 +243,17 @@ void mcmc_loop_multinomial(matrix<size_t> &Xorder_std, bool verbose,
                     state->split_count_all[i] += state->split_count_current_tree[i];
                 }
             }
-
+            
+            // store lambda values
+            for (size_t i = 0; i < state->n_y; i++)
+            {
+                // cout << "datapointer " << *(x_struct->data_pointers[tree_ind][i]) << endl;
+                for (size_t k = 0; k < state->dim_residual; k++)
+                {
+                    lambda[i][sweeps * state->num_trees * state->dim_residual + tree_ind * state->dim_residual + k] = (*(x_struct->data_pointers[tree_ind][i]))[k] ;
+                }
+            }
+            
             model->state_sweep(tree_ind, state->num_trees, state->residual_std, x_struct);
 
             for(size_t kk = 0; kk < Xorder_std[0].size(); kk ++ ){

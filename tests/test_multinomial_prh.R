@@ -166,6 +166,8 @@ table(fit$weight)
 cat("early stops per tree: ", round(fit$num_stops/num_sweeps/num_trees, 3), "\n")
 
 fit$importance
+
+sum(fit$lambda[1,] == 0)
 # 
 # stop_profiler()
 
