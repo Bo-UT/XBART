@@ -286,7 +286,7 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
         // assign theta
         std::fill(theta_vector.begin(), theta_vector.end(), 1.0);
         
-        std::gamma_distribution<double> gammadist(tau_a + suff_stat[ind[0]], 1.0);
+        std::gamma_distribution<double> gammadist(tau_a + weight * suff_stat[ind[0]], 1.0);
         theta_vector[ind[0]] = gammadist(state->gen) / (tau_b + suff_stat[c + ind[0]]);
 
     // for (size_t j = 0; j < dim_theta; j++)
@@ -600,7 +600,7 @@ void LogitModel::predict_std(const double *Xtestpointer, size_t N_test, size_t p
 
                     // product of trees, thus sum of logs
 
-                    output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] += log(bn->theta_vector[k]);
+                    output_vec[sweeps + data_ind * num_sweeps + k * num_sweeps * N_test] += weight * log(bn->theta_vector[k]);
                 }
             }
         }
@@ -686,7 +686,7 @@ void LogitModel::predict_std_standalone(const double *Xtestpointer, size_t N_tes
 
                     // product of trees, thus sum of logs
 
-                    output_vec[iter + data_ind * num_iterations + k * num_iterations * N_test] += log(bn->theta_vector[k]);
+                    output_vec[iter + data_ind * num_iterations + k * num_iterations * N_test] += weight * log(bn->theta_vector[k]);
                 }
             }
         }
