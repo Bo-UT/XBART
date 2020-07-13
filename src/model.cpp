@@ -236,12 +236,12 @@ void LogitModel::incSuffStat(matrix<double> &residual_std, size_t index_next_obs
     // sufficient statistics have 2 * num_classes
 
     suffstats[(*y_size_t)[index_next_obs]] += weight;
+    suffstats[dim_residual * 2 + (*y_size_t)[index_next_obs]] += lgamma(weight + 1);
 
 
     for (size_t j = 0; j < dim_theta; ++j)
     {
-        suffstats[j] += class_count[j]; // pseudo observation
-        suffstats[dim_theta + j] += (*phi)[index_next_obs] * residual_std[j][index_next_obs];
+        suffstats[dim_theta + j] +=  residual_std[j][index_next_obs];
     }
 
     return;
@@ -278,98 +278,47 @@ void LogitModel::samplePars(std::unique_ptr<State> &state, std::vector<double> &
 
 void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, std::unique_ptr<X_struct> &x_struct)
 {
-    std::feclearexcept(FE_OVERFLOW);
-    std::feclearexcept(FE_UNDERFLOW);
 
+    feclearexcept(FE_ALL_EXCEPT);
+
+    double sum_fits = 0;
+    double loglike_pi = 0;
+
+    std::vector<double> loglike_weight(weight_std.size(), 0.0);
+    for (size_t k = 0; k < weight_std.size(); k++)
+    {
+        #pragma omp task firstprivate(k) shared(state, dim_theta, x_struct, weight_std, loglike_weight)
+        {
+        size_t y_i;
+        double sum_fits = 0;
+        double loglike_pi = 0;
+
+        for (size_t i = 0; i < state->n_y; i++)
+        {
+            sum_fits = 0;
+            for (size_t j = 0; j < dim_theta; ++j)
+            {
+                sum_fits += pow(state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j], weight_std[k]);
+            }
+            y_i = (*state->y_std)[i];
+            loglike_pi += weight_std[k] * (log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i])) - log(sum_fits);
+        }
+        loglike_weight[k] = loglike_pi;
+        
+        }
+    }
+
+    #pragma omp taskwait
+   
     // Draw weight
-    double max = -INFINITY;
-    size_t n = state->n_y;
-    size_t y_i;
-
-    double sum_logp = 0.0;
-    double sum_label_logp = 0.0;
-    double weight_norm = 0.0;
-    double cand_norm = 0.0;
-    std::vector<double> f(dim_theta, 0.0);
-    std::vector<double> log_f(dim_theta, 0.0);
-    std::vector<double> sum_fits(n, 0.0);
-    for (size_t i = 0; i < n; i++)
+    double max = *max_element(loglike_weight.begin(), loglike_weight.end());
+    for (size_t i = 0; i < weight_std.size(); i++)
     {
-        for(size_t j = 0; j < dim_theta; j++)
-        {
-            f[j] = state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
-        }
-        sum_fits[i] = std::accumulate(f.begin(), f.end(), 0.0);
-        for(size_t j = 0; j < dim_theta; j++)
-        {
-            sum_logp += class_count[j] * (log(f[j]) - log(sum_fits[i])); // log(p) = log(f/sum_f)
-        }
-        // true label
-        y_i = (*state->y_std)[i];
-        sum_label_logp += log(f[y_i]) - log(sum_fits[i]);
-        // weight_norm +=  - lgamma(weight + class_count[y_i] + 1) ;
+        loglike_weight[i] = exp(loglike_weight[i] - max);
     }
-    // weight_norm += n * lgamma(weight + pseudo_weight + 1);
-
-    // update weight  random walk 
-    size_t steps;
-    if (!state->use_all){steps = 1;}
-    else {steps = 10;}
-    for (size_t j = 0; j < steps; j++)
-    {
-        std::normal_distribution<double> norm(0.0, 1.0);
-        std::uniform_real_distribution<double> unif(0.0, 1.0);
-        double w_cand = exp(log(weight - 1) + 0.01 * norm(state->gen)) + 1;
-        double u = log(unif(state->gen));
-
-        // cand_norm = n * lgamma(w_cand + pseudo_weight + 1);
-        // for(size_t i = 0; i < n; i++)
-        // {
-        //     cand_norm += - lgamma(w_cand + class_count[(*state->y_std)[i]] + 1);
-        // }
-
-        // double loglike_weight = (weight - 1) * sum_label_logp + sum_logp + n * (lgamma(weight + dim_residual) - lgamma(weight + 1));
-        // double loglike_cand =  (w_cand - 1) * sum_label_logp + sum_logp + n * (lgamma(w_cand + dim_residual) - lgamma(w_cand + 1));
-
-        // calculate log-Gamma term for pseudo samples
-        // cout << "pseudo weight " << pseudo_weight << endl;
-    
-        // if (isinf(-sum_label_logp )){cout << "warning: sum_label_logp goes to infinite" << endl;}
-        // double loglike_cand =  (w_cand) * sum_label_logp + sum_logp + n * (lgamma(w_cand + pseudo_weight + 1) - lgamma(w_cand + 1) - pseudo_norm);
-        // double loglike_weight = (weight) * sum_label_logp + sum_logp + n * (lgamma(weight + pseudo_weight + 1) - lgamma(weight + 1) - pseudo_norm);     
-        double loglike_diff = (w_cand - weight) * sum_label_logp + n * (lgamma(w_cand + pseudo_weight + 1) - lgamma(w_cand + 1) -  (lgamma(weight + pseudo_weight + 1) - lgamma(weight + 1)));
-        // double loglike_diff = (w_cand - weight) * sum_label_logp + cand_norm - weight_norm;
-        // double alpha = exp(loglike_cand - loglike_weight) * w_cand / weight;
-        // double alpha = exp( (weight - w_cand) / 10 )* exp(loglike_cand - loglike_weight) * w_cand / weight; // add weight prior: exp(1)
-        double alpha = (weight - w_cand) / 10 + loglike_diff + log(w_cand) - log(weight);
-        // cout << "sum_label_logp = " << sum_label_logp << "; loglike_diff = " << loglike_diff << "; alpha = " << alpha << "; weight = " << weight << "; w_cand = " << w_cand << endl;
-
-        // half cauchy prior
-        // double x0 = 0;
-        // double gamma = 1;
-        // double pi = 3.14159265358979323846;
-        // double weight_prior = log (2) - log(pi * gamma * (1 + pow( (weight - x0)/gamma, 2)));
-        // double wcand_prior = log (2) - log(pi * gamma * (1 + pow( (w_cand - x0)/gamma, 2)));
-        // double alpha = exp(wcand_prior - weight_prior) * exp(loglike_cand - loglike_weight) * w_cand / weight;
-
-        // cout << "sum_label_logp = " << sum_label_logp << "; sum_logp = " << sum_logp << "; pseudo weight " << pseudo_weight  << endl;
-        // cout << "exp(loglike_cand - loglike_weight) = " << exp(loglike_cand - loglike_weight) << "; w_cand = " << w_cand << "; weight = " << weight << endl;
-
-        if (u < alpha){
-            weight = w_cand;
-        }
-    }
-
-    // Draw phi
-    // std::gamma_distribution<double> gammadist(weight, 1.0);
-    std::gamma_distribution<double> gammadist(weight + pseudo_weight - 1, 1.0);
-    // std::vector<double> sum_fits_v (state->residual_std[0].size(), 0.0);
-
-    for (size_t i = 0; i < state->residual_std[0].size(); i++)
-    {
-        (*phi)[i] = gammadist(state->gen) / (1.0*sum_fits[i]); 
-    }
-
+    // cout << "weight likelihood " << loglike_weight << endl;
+    std::discrete_distribution<> d(loglike_weight.begin(), loglike_weight.end());
+    weight = weight_std[d(state->gen)];
 
     return;
 }
@@ -391,7 +340,7 @@ void LogitModel::initialize_root_suffstat(std::unique_ptr<State> &state, std::ve
 
     // remove resizing it does not work, strange
 
-    suff_stat.resize(2 * dim_theta);
+    suff_stat.resize(3 * dim_theta);
     std::fill(suff_stat.begin(), suff_stat.end(), 0.0);
     for (size_t i = 0; i < state->n_y; i++)
     {

@@ -57,7 +57,6 @@ X_train = cbind(X_train, matrix(rpois(n*p_cat, 20), nrow=n))
 X_test = cbind(X_test, matrix(rpois(nt*p_cat, 20), nrow=nt))
 
 
-
 lam[,1] = abs(2*X_train[,1] - X_train[,2])
 lam[,2] = 1
 lam[,3] = 3*X_train[,3]^2
@@ -70,7 +69,6 @@ lamt[,3] = 3*X_test[,3]^2
 lamt[,4] = 5*(X_test[,4]*X_test[,5])
 lamt[,5] = 2*(X_test[,5] + 2*X_test[,6])
 lamt[,6] = 2*(X_test[,1] + X_test[,3] - X_test[,5])
-
 
 # vary s to make the problem harder s < 1 or easier s > 2
 s = 15
@@ -90,13 +88,13 @@ num_trees =20
 max_depth = 20
 Nmin = k
 # ws = c(1,5,10,200,500,1000,5000)
-ws = c(10)
+ws = seq(1, 10, 0.5)
 #########################  parallel ####################3
 tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
                         num_trees=num_trees, num_sweeps=num_sweeps, max_depth=max_depth, 
-                        Nmin=Nmin, num_cutpoints=round(n/20), alpha=0.95, beta=1.25, tau_a = 1.5, tau_b = 1, 
-                        no_split_penality = 0.25, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p_cat, 
+                        Nmin=Nmin, num_cutpoints=round(n/20), alpha=0.95, beta=1.25, tau_a = 1, tau_b = 1, 
+                        no_split_penality = 1, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p_cat, 
                         kap = 1, s = 1, verbose = FALSE, set_random_seed = TRUE, 
                         random_seed = NULL, sample_weights_flag = TRUE, stop_threshold = 0.005, nthread = 0) 
 

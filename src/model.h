@@ -431,7 +431,7 @@ private:
     double LogitLIL(const vector<double> &suffstats) const
     {
 
-        size_t c = suffstats.size() / 2;
+        size_t c = dim_residual;
 
         //suffstats[0] .. suffstats[c-1]is count of y's in cat 0,...,c-1, i.e. r in proposal
         //suffstats[c] .. suffstats[2c-1] is sum of phi_i*(partial fit j)'s ie s in proposal
@@ -449,6 +449,7 @@ private:
             //!! devide s by min_sum_fits
             ret += -(tau_a + suffstats[j] ) * log(tau_b + suffstats[c + j]) + lgamma(tau_a + suffstats[j]);// - lgamma(suffstats[j] +1);
         }
+        ret += - std::accumulate(suffstats.begin() + 2 * c, suffstats.end(), 0.0); 
         return ret;
     }
 
@@ -505,7 +506,7 @@ public:
     double pseudo_norm;
     double pseudo_weight;
 
-    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std) : Model(num_classes, 2*num_classes)
+    LogitModel(int num_classes, double tau_a, double tau_b, double alpha, double beta, std::vector<size_t> *y_size_t, std::vector<double> *phi, std::vector<double> weight_std) : Model(num_classes, 3*num_classes)
     {
         this->y_size_t = y_size_t;
         this->phi = phi;
@@ -521,7 +522,7 @@ public:
         ini_class_count(this->class_count, pseudo_norm, num_classes);
     }
 
-    LogitModel() : Model(2, 4) {}
+    LogitModel() : Model(2, 6) {}
 
     Model *clone() { return new LogitModel(*this); }
 
