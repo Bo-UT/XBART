@@ -430,7 +430,7 @@ Rcpp::List XBART_CLT_cpp(arma::mat y, arma::mat X, arma::mat Xtest, size_t num_t
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
-Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat X, arma::mat Xtest, size_t num_trees, size_t num_sweeps, size_t max_depth, size_t n_min, size_t num_cutpoints, double alpha, double beta, double tau_a, double tau_b, double no_split_penality, Rcpp::DoubleVector weight, size_t burnin = 1, size_t mtry = 0, size_t p_categorical = 0, double kap = 16, double s = 4, bool verbose = false, bool set_random_seed = false, size_t random_seed = 0, bool sample_weights_flag = true, double stop_threshold = 0, size_t nthread = 0) 
+Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat X, arma::mat Xtest, size_t num_trees, size_t num_sweeps, size_t max_depth, size_t n_min, size_t num_cutpoints, double alpha, double beta, double tau_a, double tau_b, double no_split_penality, Rcpp::DoubleVector weight, size_t burnin = 1, size_t mtry = 0, size_t p_categorical = 0, double kap = 16, double s = 4, bool verbose = false, bool set_random_seed = false, size_t random_seed = 0, bool sample_weights_flag = true, double stop_threshold = 0, size_t nthread = 0, double nu = 1, bool update_tau = false) 
 {
     auto start = system_clock::now();
 
@@ -524,7 +524,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     for (size_t i = 0; i < weight.size(); ++i)
         weight_std[i] = weight[i];
 
-    LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std);
+    LogitModel *model = new LogitModel(num_class, tau_a, tau_b, alpha, beta, &y_size_t, &phi, weight_std, nu, update_tau);
     model->setNoSplitPenality(no_split_penality);
 
     // State settings
@@ -544,11 +544,13 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
 
     std::vector<std::vector<double>> weight_samples;
     ini_matrix(weight_samples, num_trees, num_sweeps);
+    std::vector<std::vector<double>> tau_samples;
+    ini_matrix(tau_samples, num_trees, num_sweeps);
 
     ////////////////////////////////////////////////////////////////
     size_t num_stops = 0; 
 
-    mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples, stop_threshold, num_stops);
+    mcmc_loop_multinomial(Xorder_std, verbose, *trees2, no_split_penality, state, model, x_struct, phi_samples, weight_samples, tau_samples, stop_threshold, num_stops);
     // replace num_sweeps with  sweep;
     // num_sweeps = state->num_sweeps;
 
@@ -580,6 +582,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
     Rcpp::XPtr<std::vector<std::vector<tree>>> tree_pnt(trees2, true);
     Rcpp::NumericMatrix phi_sample_rcpp(N, num_sweeps * num_trees);
     Rcpp::NumericMatrix weight_sample_rcpp(num_trees, num_sweeps);
+    Rcpp::NumericMatrix tau_sample_rcpp(num_trees, num_sweeps);
 
     // TODO: Make these functions
     // for (size_t i = 0; i < N; i++)
@@ -602,6 +605,13 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
         for (size_t j = 0; j < num_sweeps; j++)
         {
             weight_sample_rcpp(i, j) = weight_samples[j][i];
+        }
+    }
+    for (size_t i = 0; i < num_trees; i++)
+    {
+        for (size_t j = 0; j < num_sweeps; j++)
+        {
+            tau_sample_rcpp(i, j) = tau_samples[j][i];
         }
     }
     for (size_t i = 0; i < N_test; i++)
@@ -637,6 +647,7 @@ Rcpp::List XBART_multinomial_cpp(Rcpp::IntegerVector y, int num_class, arma::mat
         Rcpp::Named("yhats_test") = output,
         Rcpp::Named("phi") = phi_sample_rcpp,
         Rcpp::Named("weight") = weight_sample_rcpp,
+        Rcpp::Named("tau") = tau_sample_rcpp,
         Rcpp::Named("importance") = split_count_sum,
         // Rcpp::Named("num_sweeps") = num_sweeps,
         Rcpp::Named("num_stops") = num_stops,

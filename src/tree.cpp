@@ -807,6 +807,9 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
             }
         }
 
+        #pragma omp critical
+        state->lambdas[tree_ind].push_back(this->theta_vector);
+
         // if (update_theta)
         // {
         //     model->samplePars(state, this->suff_stat, this->theta_vector, this->prob_leaf);
@@ -838,6 +841,17 @@ void tree::grow_from_root_entropy(std::unique_ptr<State> &state, matrix<size_t> 
     // If our current split is same as parent, exit
     if ((this->p) && (this->v == (this->p)->v) && (this->c == (this->p)->c))
     {
+        if (!update_split_prob)
+        {
+            // #pragma omp parallel for schedule(static, 128)
+            for (size_t i = 0; i < N_Xorder; i++)
+            {
+                x_struct->data_pointers[tree_ind][Xorder_std[0][i]] = &this->theta_vector;
+            }
+        }
+        #pragma omp critical
+        state->lambdas[tree_ind].push_back(this->theta_vector);
+        
         return;
     }
 

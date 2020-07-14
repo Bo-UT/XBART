@@ -281,34 +281,54 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
 
     feclearexcept(FE_ALL_EXCEPT);
 
-    double sum_fits = 0;
-    double loglike_pi = 0;
+    
 
     std::vector<double> loglike_weight(weight_std.size(), 0.0);
+    // double sum_fits = 0;
+    // double loglike_pi = 0;
+    // for (size_t k = 0; k < weight_std.size(); k++)
+    // {
+    //     #pragma omp task firstprivate(k) shared(state, dim_theta, x_struct, weight_std, loglike_weight)
+    //     {
+    //     size_t y_i;
+    //     double sum_fits = 0;
+    //     double loglike_pi = 0;
+
+    //     for (size_t i = 0; i < state->n_y; i++)
+    //     {
+    //         sum_fits = 0;
+    //         for (size_t j = 0; j < dim_theta; ++j)
+    //         {
+    //             sum_fits += pow(state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j], weight_std[k]);
+    //         }
+    //         y_i = (*state->y_std)[i];
+    //         loglike_pi += weight_std[k] * (log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i])) - log(sum_fits);
+    //     }
+    //     loglike_weight[k] = loglike_pi;
+        
+    //     }
+    // }
+
+    // #pragma omp taskwait
+    
+    // weight likelihood based on Poisson distribution
+    size_t y_i;
+    double sum_logp = 0;
+    double sum_fits;
+    for (size_t i = 0; i < state->n_y; i++)
+    {
+        sum_fits = 0;
+        for (size_t j = 0; j < dim_theta; ++j)
+        {
+            sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
+        }
+        y_i = (*state->y_std)[i];
+        sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits);
+    }
     for (size_t k = 0; k < weight_std.size(); k++)
     {
-        #pragma omp task firstprivate(k) shared(state, dim_theta, x_struct, weight_std, loglike_weight)
-        {
-        size_t y_i;
-        double sum_fits = 0;
-        double loglike_pi = 0;
-
-        for (size_t i = 0; i < state->n_y; i++)
-        {
-            sum_fits = 0;
-            for (size_t j = 0; j < dim_theta; ++j)
-            {
-                sum_fits += pow(state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j], weight_std[k]);
-            }
-            y_i = (*state->y_std)[i];
-            loglike_pi += weight_std[k] * (log(state->residual_std[y_i][i]) + log((*(x_struct->data_pointers[tree_ind][i]))[y_i])) - log(sum_fits);
-        }
-        loglike_weight[k] = loglike_pi;
-        
-        }
+        loglike_weight[k] = weight_std[k] * sum_logp - state->n_y * lgamma(weight_std[k] + 1);
     }
-
-    #pragma omp taskwait
    
     // Draw weight
     double max = *max_element(loglike_weight.begin(), loglike_weight.end());
@@ -319,6 +339,45 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     // cout << "weight likelihood " << loglike_weight << endl;
     std::discrete_distribution<> d(loglike_weight.begin(), loglike_weight.end());
     weight = weight_std[d(state->gen)];
+
+
+    // Sample tau_a
+    if (update_tau){
+
+    
+    size_t count_lambda = 0;
+    double mean_lambda = 0;
+    double var_lambda = 0;
+    for(size_t i = 0; i < state->num_trees; i++)
+    {
+        for(size_t j = 0; j < state->lambdas[i].size(); j++)
+        {
+            mean_lambda += std::accumulate(state->lambdas[i][j].begin(), state->lambdas[i][j].end(), 0.0);
+            count_lambda += dim_residual;
+        }
+    }
+    mean_lambda = mean_lambda / count_lambda;
+
+    for(size_t i = 0; i < state->num_trees; i++)
+    {
+        for(size_t j = 0; j < state->lambdas[i].size(); j++)
+        {
+            for(size_t k = 0; k < dim_residual; k++)
+            {
+            var_lambda += pow(state->lambdas[i][j][k] - mean_lambda, 2);
+            }
+        }
+    }    
+    var_lambda = var_lambda / count_lambda;
+    // cout << "mean = " << mean_lambda << "; var = " << var_lambda << endl;
+
+    std::normal_distribution<> norm(mean_lambda, var_lambda / count_lambda);
+    tau_a = 0;
+    while (tau_a <= 0)
+    {
+        tau_a = norm(state->gen) * tau_b;
+    }
+    }
 
     return;
 }
