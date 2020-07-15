@@ -55,7 +55,7 @@ num_cutpoints=20
 
 drop_threshold = 1
 
-ws = seq(1, 15, 0.5)
+ws = c(1)# seq(1, 15, 0.5)
 
 
 
@@ -87,11 +87,11 @@ fit = XBART.multinomial(y=matrix(y), num_class=10, X=X_train, Xtest=X_test,
                         Nmin=Nmin, num_cutpoints=num_cutpoints, alpha=0.95, beta=1.25, tau_a = 1, tau_b = 1, 
                         no_split_penality = 1, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p, 
                         kap = 1, s = 1, verbose = TRUE, parallel = TRUE, set_random_seed = TRUE, 
-                        random_seed = NULL, sample_weights_flag = TRUE, sample_per_tree = TRUE, stop_threshold = 0.005, nthread = 0, nu = 16, update_tau = FALSE) 
+                        random_seed = NULL, sample_weights_flag = TRUE, sample_per_tree = TRUE, stop_threshold = 0.005, nthread = 0, nu = 0.08, update_tau = FALSE) 
 t = proc.time() - t
 
 
-pred = apply(fit$yhats_test[(burnin):(num_sweeps-0),,], c(2,3), mean)
+pred = apply(fit$yhats_test[(burnin):(num_sweeps-0),,], c(2,3), median)
 yhat = max.col(pred)-1
 
 spr <- split(pred, row(pred))
@@ -111,4 +111,4 @@ cat(paste("xbart logloss : ",round(logloss,3)),"\n")
 #       " misclassified as ", tail(names(sort(table(yhat[ytest==i]))), 2)[1], "\n " )
 # }
 # 
-saveRDS(fit, paste(path, 'mnist_result/weight_likelihood_071310.rds', sep = ''))
+saveRDS(fit, paste(path, 'mnist_result/weight_likelihood_071404.rds', sep = ''))

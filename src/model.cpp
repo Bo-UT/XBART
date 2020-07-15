@@ -312,39 +312,39 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     // #pragma omp taskwait
     
     // weight likelihood based on Poisson distribution
-    // size_t y_i;
-    // double sum_logp = 0;
-    // double sum_fits;
-    // for (size_t i = 0; i < state->n_y; i++)
-    // {
-    //     // probability version
-    //     sum_fits = 0;
-    //     for (size_t j = 0; j < dim_theta; ++j)
-    //     {
-    //         sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
-    //     }
-    //     y_i = (*state->y_std)[i];
-    //     sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits);
+    size_t y_i;
+    double sum_logp = 0;
+    double sum_fits;
+    for (size_t i = 0; i < state->n_y; i++)
+    {
+        // probability version
+        // sum_fits = 0;
+        // for (size_t j = 0; j < dim_theta; ++j)
+        // {
+        //     sum_fits += state->residual_std[j][i] * (*(x_struct->data_pointers[tree_ind][i]))[j];
+        // }
+        // y_i = (*state->y_std)[i];
+        // sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits);
 
-    //     // lambda version
-    //     // y_i = (*state->y_std)[i];
-    //     // sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i]);
-    //     // cout << "lambda = " <<  nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] << "; pi = " << nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits << endl;
-    // }
-    // for (size_t k = 0; k < weight_std.size(); k++)
-    // {
-    //     loglike_weight[k] = weight_std[k] * sum_logp - state->n_y * lgamma(weight_std[k] + 1);
-    // }
+        // lambda version
+        y_i = (*state->y_std)[i];
+        sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i]);
+        // cout << "lambda = " <<  nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] << "; pi = " << nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits << endl;
+    }
+    for (size_t k = 0; k < weight_std.size(); k++)
+    {
+        loglike_weight[k] = weight_std[k] * sum_logp - state->n_y * lgamma(weight_std[k] + 1);
+    }
    
-    // // Draw weight
-    // double max = *max_element(loglike_weight.begin(), loglike_weight.end());
-    // for (size_t i = 0; i < weight_std.size(); i++)
-    // {
-    //     loglike_weight[i] = exp(loglike_weight[i] - max);
-    // }
-    // // cout << "weight likelihood " << loglike_weight << endl;
-    // std::discrete_distribution<> d(loglike_weight.begin(), loglike_weight.end());
-    // weight = weight_std[d(state->gen)];
+    // Draw weight
+    double max = *max_element(loglike_weight.begin(), loglike_weight.end());
+    for (size_t i = 0; i < weight_std.size(); i++)
+    {
+        loglike_weight[i] = exp(loglike_weight[i] - max);
+    }
+    // cout << "weight likelihood " << loglike_weight << endl;
+    std::discrete_distribution<> d(loglike_weight.begin(), loglike_weight.end());
+    weight = weight_std[d(state->gen)];
 
     // Sample tau_a
     if (update_tau){
