@@ -88,7 +88,8 @@ num_trees =20
 max_depth = 20
 Nmin = k
 # ws = c(1,5,10,200,500,1000,5000)
-ws = seq(1, 15, 0.5)
+# ws = seq(1, 15, 0.5)
+ws = c(1)
 #########################  parallel ####################3
 tm = proc.time()
 fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test, 
@@ -96,7 +97,8 @@ fit = XBART.multinomial(y=matrix(y_train), num_class=k, X=X_train, Xtest=X_test,
                         Nmin=Nmin, num_cutpoints=round(n/20), alpha=0.95, beta=1.25, tau_a = 1, tau_b = 1, 
                         no_split_penality = 1, weight = ws, burnin = burnin, mtry = mtry, p_categorical = p_cat, 
                         kap = 1, s = 1, verbose = FALSE, set_random_seed = TRUE, 
-                        random_seed = NULL, sample_weights_flag = TRUE, stop_threshold = 0.005, nthread = 0, nu = 10, update_tau = FALSE) 
+                        random_seed = NULL, sample_weights_flag = TRUE, stop_threshold = 0.005, nthread = 0, 
+                        nu = 10, update_tau = FALSE) 
 
 
 tm = proc.time()-tm

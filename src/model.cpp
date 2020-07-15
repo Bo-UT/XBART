@@ -236,12 +236,12 @@ void LogitModel::incSuffStat(matrix<double> &residual_std, size_t index_next_obs
     // sufficient statistics have 2 * num_classes
 
     suffstats[(*y_size_t)[index_next_obs]] += weight;
-    suffstats[dim_residual * 2 + (*y_size_t)[index_next_obs]] += lgamma(weight + 1);
+    suffstats[dim_residual * 2 + (*y_size_t)[index_next_obs]] += lgamma(1 + 1);//lgamma(weight + 1);
 
 
     for (size_t j = 0; j < dim_theta; ++j)
     {
-        suffstats[dim_theta + j] +=  nu * residual_std[j][index_next_obs];
+        suffstats[dim_theta + j] +=  weight * nu * residual_std[j][index_next_obs];
     }
 
     return;
@@ -284,6 +284,7 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
     
 
     std::vector<double> loglike_weight(weight_std.size(), 0.0);
+    // p^w/sum(p^w) version
     // double sum_fits = 0;
     // double loglike_pi = 0;
     // for (size_t k = 0; k < weight_std.size(); k++)
@@ -327,13 +328,18 @@ void LogitModel::update_state(std::unique_ptr<State> &state, size_t tree_ind, st
         // sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits);
 
         // lambda version
+        // y_i = (*state->y_std)[i];
+        // sum_logp += log(state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i]);
+        // cout << "lambda = " <<  state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] << endl;
+
+        // w copies of 1 observation
         y_i = (*state->y_std)[i];
-        sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i]);
-        // cout << "lambda = " <<  nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] << "; pi = " << nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i] / sum_fits << endl;
+        sum_logp += log(nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i]) - nu * state->residual_std[y_i][i] * (*(x_struct->data_pointers[tree_ind][i]))[y_i];
     }
     for (size_t k = 0; k < weight_std.size(); k++)
     {
-        loglike_weight[k] = weight_std[k] * sum_logp - state->n_y * lgamma(weight_std[k] + 1);
+        // loglike_weight[k] = weight_std[k] * sum_logp - state->n_y * lgamma(weight_std[k] + 1);
+        loglike_weight[k] = weight_std[k] * sum_logp;
     }
    
     // Draw weight
